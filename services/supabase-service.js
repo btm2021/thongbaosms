@@ -23,6 +23,8 @@ class SupabaseService {
 
     async testConnection() {
         try {
+            console.log('Testing Supabase connection...');
+            
             // Test with a simple query to check table existence and structure
             const { data, error } = await this.supabase
                 .from(this.tableName)
@@ -42,15 +44,23 @@ class SupabaseService {
                     };
                 }
                 
+                // Check for authentication errors
+                if (error.message.includes('JWT') || error.message.includes('authentication')) {
+                    return {
+                        success: false,
+                        error: 'Authentication failed. Please check your Supabase key.'
+                    };
+                }
+                
                 return { success: false, error: error.message };
             }
             
             this.isConnected = true;
-            console.log('Supabase connection test successful');
+            console.log('✅ Supabase connection test successful');
             return { success: true, message: 'Connected successfully to banking_transactions table' };
         } catch (error) {
             this.isConnected = false;
-            console.error('Supabase connection error:', error);
+            console.error('❌ Supabase connection error:', error);
             return { success: false, error: error.message };
         }
     }
@@ -205,18 +215,31 @@ class SupabaseService {
     }
 
     async saveTransaction(smsData) {
-        if (!this.isConnected) {
-            return { success: false, error: 'Not connected to Supabase' };
-        }
-
         try {
+            // Test connection first if not connected
+            if (!this.isConnected) {
+                console.log('Testing Supabase connection before saving...');
+                const testResult = await this.testConnection();
+                if (!testResult.success) {
+                    return { success: false, error: `Connection failed: ${testResult.error}` };
+                }
+            }
+
+            console.log('Preparing transaction data for save...');
             const transactionData = this.prepareTransactionData(smsData);
             
             // Validate required fields
             const validation = this.validateTransactionData(transactionData);
             if (!validation.isValid) {
+                console.error('Validation failed:', validation.errors);
                 return { success: false, error: `Validation failed: ${validation.errors.join(', ')}` };
             }
+
+            console.log('Inserting transaction into Supabase:', {
+                bank: transactionData.bank,
+                amount: transactionData.amount,
+                transaction_type: transactionData.transaction_type
+            });
 
             const { data, error } = await this.supabase
                 .from(this.tableName)
@@ -224,15 +247,17 @@ class SupabaseService {
                 .select();
 
             if (error) {
-                console.error('Supabase insert error:', error);
+                console.error('❌ Supabase insert error:', error);
+                this.isConnected = false; // Mark as disconnected for retry
                 return { success: false, error: error.message };
             }
 
-            console.log('Transaction saved successfully:', data[0]?.id);
+            console.log('✅ Transaction saved successfully:', data[0]?.id);
             return { success: true, data: data[0] };
 
         } catch (error) {
-            console.error('Save transaction error:', error);
+            console.error('❌ Save transaction error:', error);
+            this.isConnected = false; // Mark as disconnected for retry
             return { success: false, error: error.message };
         }
     }

@@ -305,6 +305,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -361,7 +362,7 @@
         .total-amount {
             font-size: 24px;
             font-weight: 900;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -378,7 +379,43 @@
         </div>
 
         <div class="section">
-            <h3>⚙️ Cấu hình</h3>
+            <h3>🔑 API Keys & Kết nối</h3>
+            <div
+                style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; color: #1565c0;">
+                📁 Config được lưu tại: <span id="configPath" style="font-weight: bold;">Đang tải...</span>
+            </div>
+
+            <div class="form-group">
+                <label for="pushbulletApi">🔗 Pushbullet API Key:</label>
+                <input type="password" id="pushbulletApi" placeholder="Nhập Pushbullet API key...">
+                <small style="color: #6c757d; font-size: 11px;">
+                    Lấy từ: <a href="https://www.pushbullet.com/#settings/account"
+                        target="_blank">https://www.pushbullet.com/#settings/account</a>
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="supabaseUrl">🗄️ Supabase URL:</label>
+                <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
+            </div>
+
+            <div class="form-group">
+                <label for="supabaseKey">🔐 Supabase Key:</label>
+                <input type="password" id="supabaseKey" placeholder="Nhập Supabase anon key...">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <button class="btn btn-warning" onclick="testPushbulletConnection()">
+                    🧪 Test Pushbullet
+                </button>
+                <button class="btn btn-warning" onclick="testSupabaseConnection()">
+                    🧪 Test Supabase
+                </button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>⚙️ Cấu hình hiển thị</h3>
             <div class="config-row">
                 <label>Vị trí popup:</label>
                 <select id="position">
@@ -432,7 +469,7 @@
 
         <div class="section">
             <h3>📊 Lịch sử giao dịch</h3>
-            
+
             <!-- Balance Summary -->
             <div id="balanceSummary" class="balance-summary" style="display: none;">
                 <h4>💰 Tổng số dư hiện tại</h4>
@@ -482,22 +519,44 @@
             try {
                 await Promise.all([
                     loadConfig(),
+                    loadConfigPath(),
                     updateStatus()
                 ]);
 
-                // Load transactions if Supabase is enabled
-                if (currentConfig.supabase?.enabled && currentConfig.supabase?.url && currentConfig.supabase?.key) {
+                // Always try to load transactions if Supabase is configured (regardless of enabled status)
+                // This ensures the transaction history is always available in the interface
+                if (currentConfig.supabase?.url && currentConfig.supabase?.key) {
                     await loadTransactions();
+                } else {
+                    // Show message if Supabase is not configured
+                    const listEl = document.getElementById('transactionList');
+                    listEl.innerHTML = '<div class="no-data">⚙️ Cần cấu hình Supabase để xem lịch sử giao dịch</div>';
                 }
             } catch (error) {
                 showMessage('❌ Lỗi khởi tạo ứng dụng: ' + error.message, 'error');
             }
         });
 
+        async function loadConfigPath() {
+            try {
+                const configPath = await ipcRenderer.invoke('get-config-path');
+                document.getElementById('configPath').textContent = configPath;
+            } catch (error) {
+                document.getElementById('configPath').textContent = 'Lỗi tải đường dẫn';
+            }
+        }
+
 
 
         async function loadConfig() {
             currentConfig = await ipcRenderer.invoke('get-config');
+
+            // Load API keys
+            document.getElementById('pushbulletApi').value = currentConfig.pushbullet?.apiKey || '';
+            document.getElementById('supabaseUrl').value = currentConfig.supabase?.url || '';
+            document.getElementById('supabaseKey').value = currentConfig.supabase?.key || '';
+
+            // Load display settings
             document.getElementById('position').value = currentConfig.popup?.position || 'top-right';
             document.getElementById('soundEnabled').checked = currentConfig.popup?.soundEnabled !== false;
             document.getElementById('supabaseEnabled').checked = currentConfig.supabase?.enabled === true;
@@ -557,8 +616,13 @@
 
         async function updateConfig() {
             try {
+                showMessage('🔄 Đang lưu cấu hình...', 'info');
+
                 const autoCloseSeconds = Math.max(0, Math.min(30, parseInt(document.getElementById('autoCloseDelay').value) || 8));
                 const newConfig = {
+                    pushbullet: {
+                        apiKey: document.getElementById('pushbulletApi').value.trim()
+                    },
                     popup: {
                         position: document.getElementById('position').value,
                         soundEnabled: document.getElementById('soundEnabled').checked,
@@ -566,23 +630,78 @@
                         autoCloseDelay: autoCloseSeconds * 1000
                     },
                     supabase: {
+                        url: document.getElementById('supabaseUrl').value.trim(),
+                        key: document.getElementById('supabaseKey').value.trim(),
                         enabled: document.getElementById('supabaseEnabled').checked
                     }
                 };
 
+                console.log('Saving config:', newConfig);
                 const saved = await ipcRenderer.invoke('save-config', newConfig);
+
                 if (saved) {
                     currentConfig = { ...currentConfig, ...newConfig };
-                    const supabaseStatus = newConfig.supabase.enabled ? 'bật' : 'tắt';
-                    showMessage(`✅ Cấu hình đã được lưu! Supabase: ${supabaseStatus}`, 'success');
+                    const supabaseStatus = newConfig.supabase.enabled ? 'BẬT (tự động lưu giao dịch)' : 'TẮT (chỉ xem dữ liệu có sẵn)';
+                    showMessage(`✅ Cấu hình đã được lưu thành công tại C:\\tinhansms\\config.txt!\n💾 Supabase: ${supabaseStatus}`, 'success');
 
-                    // Reload transactions if Supabase settings changed
+                    // Reinitialize Supabase client with new settings
+                    initializeSupabase();
+
+                    // Always reload transactions to reflect current state
                     await loadTransactions();
+
+                    // Update status
+                    await updateStatus();
                 } else {
-                    showMessage('❌ Lỗi khi lưu cấu hình!', 'error');
+                    showMessage('❌ Lỗi khi lưu cấu hình! Vui lòng kiểm tra quyền ghi file.', 'error');
                 }
             } catch (error) {
+                console.error('Config save error:', error);
                 showMessage('❌ Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        async function testPushbulletConnection() {
+            const apiKey = document.getElementById('pushbulletApi').value.trim();
+            if (!apiKey) {
+                showMessage('❌ Vui lòng nhập Pushbullet API key', 'error');
+                return;
+            }
+
+            try {
+                showMessage('🔄 Đang test kết nối Pushbullet...', 'info');
+                const result = await ipcRenderer.invoke('test-pushbullet', apiKey);
+
+                if (result.success) {
+                    showMessage('✅ Kết nối Pushbullet thành công!', 'success');
+                } else {
+                    showMessage('❌ Lỗi kết nối Pushbullet: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Lỗi test Pushbullet: ' + error.message, 'error');
+            }
+        }
+
+        async function testSupabaseConnection() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+
+            if (!url || !key) {
+                showMessage('❌ Vui lòng nhập đầy đủ Supabase URL và Key', 'error');
+                return;
+            }
+
+            try {
+                showMessage('🔄 Đang test kết nối Supabase...', 'info');
+                const result = await ipcRenderer.invoke('test-supabase', url, key);
+
+                if (result.success) {
+                    showMessage('✅ Kết nối Supabase thành công!', 'success');
+                } else {
+                    showMessage('❌ Lỗi kết nối Supabase: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Lỗi test Supabase: ' + error.message, 'error');
             }
         }
 
@@ -649,12 +768,8 @@
                 return;
             }
 
-            if (!currentConfig.supabase?.enabled) {
-                listEl.innerHTML = '<div class="no-data">💾 Supabase đã tắt</div>';
-                document.getElementById('balanceSummary').style.display = 'none';
-                return;
-            }
-
+            // Always load transactions if Supabase is configured, regardless of enabled status
+            // This allows users to view transaction history even when auto-save is disabled
             listEl.innerHTML = '<div class="loading">🔄 Đang tải dữ liệu...</div>';
 
             try {
@@ -669,20 +784,40 @@
                 }
 
                 if (!data || data.length === 0) {
-                    listEl.innerHTML = '<div class="no-data">📭 Chưa có giao dịch nào</div>';
+                    const statusMessage = currentConfig.supabase?.enabled
+                        ? '📭 Chưa có giao dịch nào (Supabase đang bật - giao dịch mới sẽ được lưu tự động)'
+                        : '📭 Chưa có giao dịch nào (Supabase đã tắt - chỉ xem dữ liệu có sẵn)';
+                    listEl.innerHTML = `<div class="no-data">${statusMessage}</div>`;
                     document.getElementById('balanceSummary').style.display = 'none';
                     return;
                 }
 
                 renderTransactions(data);
                 calculateBalanceSummary(data);
-                showMessage(`✅ Đã tải ${data.length} giao dịch`, 'success');
+
+                const statusMessage = currentConfig.supabase?.enabled
+                    ? `✅ Đã tải ${data.length} giao dịch (Supabase: BẬT - tự động lưu)`
+                    : `✅ Đã tải ${data.length} giao dịch (Supabase: TẮT - chỉ xem)`;
+                showMessage(statusMessage, 'success');
 
             } catch (error) {
                 console.error('Error loading transactions:', error);
-                listEl.innerHTML = `<div class="no-data">❌ Lỗi: ${error.message}</div>`;
+
+                // Provide more specific error messages
+                let errorMessage = 'Lỗi không xác định';
+                if (error.message.includes('relation') && error.message.includes('does not exist')) {
+                    errorMessage = 'Bảng banking_transactions chưa tồn tại. Vui lòng tạo bảng theo schema.';
+                } else if (error.message.includes('JWT') || error.message.includes('authentication')) {
+                    errorMessage = 'Lỗi xác thực. Vui lòng kiểm tra Supabase Key.';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra internet.';
+                } else {
+                    errorMessage = error.message;
+                }
+
+                listEl.innerHTML = `<div class="no-data">❌ ${errorMessage}</div>`;
                 document.getElementById('balanceSummary').style.display = 'none';
-                showMessage('❌ Lỗi khi tải dữ liệu từ Supabase', 'error');
+                showMessage(`❌ Lỗi khi tải dữ liệu từ Supabase: ${errorMessage}`, 'error');
             }
         }
 
@@ -730,13 +865,13 @@
             }
 
             // Sort transactions by received_at descending to get latest first
-            const sortedTransactions = [...transactions].sort((a, b) => 
+            const sortedTransactions = [...transactions].sort((a, b) =>
                 new Date(b.received_at) - new Date(a.received_at)
             );
 
             // Get latest balance for each bank
             const latestBalances = {};
-            
+
             sortedTransactions.forEach(transaction => {
                 const bank = transaction.bank?.toLowerCase() || 'other';
                 // Only take the first (latest) transaction for each bank
@@ -748,7 +883,7 @@
             // Get balances for main banks
             const vietinBalance = latestBalances['vietinbank'] || 0;
             const vietcombankBalance = latestBalances['vietcombank'] || 0;
-            
+
             // Calculate other banks balance
             let otherBalance = 0;
             Object.keys(latestBalances).forEach(bank => {

@@ -7,6 +7,7 @@ const fsSync = require('fs');
 const SMSParser = require('./services/sms-parser');
 const PushbulletListener = require('./services/pushbullet-listener');
 const SupabaseService = require('./services/supabase-service');
+const ConfigManager = require('./utils/config-manager');
 const CONSTANTS = require('./constants');
 
 class SMSNotificationApp {
@@ -16,37 +17,49 @@ class SMSNotificationApp {
         this.tray = null;
         this.pushbulletListener = null;
         this.supabaseService = null;
-        this.config = this.loadConfig();
+        this.configManager = new ConfigManager();
+        this.config = null;
         this.isConnected = false;
+        this.isShuttingDown = false;
+        
+        // Initialize app asynchronously
+        this.initializeApp().catch(error => {
+            console.error('Failed to initialize app:', error);
+        });
+    }
+
+    async initializeApp() {
+        try {
+            // Run setup to ensure config directory exists
+            const setupConfig = require('./scripts/setup-config');
+            const setupSuccess = setupConfig();
+            
+            if (!setupSuccess) {
+                console.warn('⚠️ Config setup had issues, but continuing...');
+            }
+            
+            // Load config from C:\tinhansms\config.txt
+            const flatConfig = await this.configManager.ensureConfigExists();
+            this.config = this.configManager.convertToAppConfig(flatConfig);
+            
+            console.log('✅ Config loaded from:', this.configManager.getConfigPath());
+            console.log('📋 Current config structure:');
+            console.log('  - Pushbullet API:', this.config.pushbullet?.apiKey ? '***' + this.config.pushbullet.apiKey.slice(-4) : 'Not set');
+            console.log('  - Supabase URL:', this.config.supabase?.url || 'Not set');
+            console.log('  - Supabase enabled:', this.config.supabase?.enabled || false);
+            console.log('  - Popup position:', this.config.popup?.position || 'top-right');
+        } catch (error) {
+            console.error('❌ Error initializing config:', error);
+            // Use default config if loading fails
+            this.config = this.configManager.convertToAppConfig(this.configManager.defaultConfig);
+        }
         
         this.setupApp();
     }
 
-    loadConfig() {
-        const defaultConfig = {
-            ...CONSTANTS.DEFAULT_CONFIG,
-            pushbullet: {
-                ...CONSTANTS.DEFAULT_CONFIG.pushbullet,
-                apiKey: process.env.PUSHBULLET_API_KEY || ''
-            },
-            supabase: {
-                ...CONSTANTS.DEFAULT_CONFIG.supabase,
-                url: process.env.SUPABASE_URL || '',
-                key: process.env.SUPABASE_KEY || ''
-            }
-        };
-
-        try {
-            const configPath = path.join(__dirname, CONSTANTS.PATHS.CONFIG);
-            if (fsSync.existsSync(configPath)) {
-                const fileConfig = JSON.parse(fsSync.readFileSync(configPath, 'utf8'));
-                return this.mergeConfig(defaultConfig, fileConfig);
-            }
-        } catch (error) {
-            console.warn(CONSTANTS.ERRORS.CONFIG_LOAD_FAILED + ':', error.message);
-        }
-
-        return defaultConfig;
+    async loadConfig() {
+        const flatConfig = await this.configManager.loadConfig();
+        return this.configManager.convertToAppConfig(flatConfig);
     }
 
     mergeConfig(defaultConfig, fileConfig) {
@@ -63,9 +76,8 @@ class SMSNotificationApp {
 
     async saveConfig() {
         try {
-            const configPath = path.join(__dirname, CONSTANTS.PATHS.CONFIG);
-            await fs.writeFile(configPath, JSON.stringify(this.config, null, 2), 'utf8');
-            return true;
+            const flatConfig = this.configManager.convertToFlatConfig(this.config);
+            return await this.configManager.saveConfig(flatConfig);
         } catch (error) {
             console.error(CONSTANTS.ERRORS.CONFIG_SAVE_FAILED + ':', error);
             return false;
@@ -73,7 +85,14 @@ class SMSNotificationApp {
     }
 
     setupApp() {
-        app.whenReady().then(() => {
+        app.whenReady().then(async () => {
+            // Wait for config to be loaded if not already
+            if (!this.config) {
+                const flatConfig = await this.configManager.ensureConfigExists();
+                this.config = this.configManager.convertToAppConfig(flatConfig);
+                console.log('Config loaded from:', this.configManager.getConfigPath());
+            }
+
             this.createTray();
             this.setupIPC();
             
@@ -86,8 +105,27 @@ class SMSNotificationApp {
             e.preventDefault();
         });
 
-        app.on('before-quit', () => {
-            this.cleanup();
+        app.on('before-quit', (e) => {
+            console.log('App is quitting...');
+            e.preventDefault(); // Prevent immediate quit
+            this.gracefulShutdown().then(() => {
+                app.exit(0);
+            }).catch((error) => {
+                console.error('Error during graceful shutdown:', error);
+                app.exit(1);
+            });
+        });
+
+        // Handle uncaught exceptions
+        process.on('uncaughtException', (error) => {
+            console.error('Uncaught Exception:', error);
+            this.gracefulShutdown().then(() => {
+                process.exit(1);
+            });
+        });
+
+        process.on('unhandledRejection', (reason, promise) => {
+            console.error('Unhandled Rejection at:', promise, 'reason:', reason);
         });
     }
 
@@ -194,42 +232,64 @@ class SMSNotificationApp {
     }
 
     updateTrayMenu() {
-        const contextMenu = Menu.buildFromTemplate([
-            {
-                label: 'SMS Notification',
-                enabled: false
-            },
-            { type: 'separator' },
-            {
-                label: this.isConnected ? '🟢 Connected' : '🔴 Disconnected',
-                enabled: false
-            },
-            { type: 'separator' },
-            {
-                label: 'Open',
-                click: () => this.showMainWindow()
-            },
-            {
-                label: this.isConnected ? 'Stop' : 'Start',
-                click: () => {
-                    if (this.isConnected) {
-                        this.stopServices();
-                    } else {
-                        this.startServices();
+        // Don't update menu during shutdown
+        if (this.isShuttingDown || !this.tray || this.tray.isDestroyed()) {
+            return;
+        }
+
+        try {
+            const contextMenu = Menu.buildFromTemplate([
+                {
+                    label: 'SMS Notification',
+                    enabled: false
+                },
+                { type: 'separator' },
+                {
+                    label: this.isConnected ? '🟢 Connected' : '🔴 Disconnected',
+                    enabled: false
+                },
+                { type: 'separator' },
+                {
+                    label: 'Open',
+                    click: () => {
+                        if (!this.isShuttingDown) {
+                            this.showMainWindow();
+                        }
+                    }
+                },
+                {
+                    label: this.isConnected ? 'Stop' : 'Start',
+                    click: () => {
+                        if (!this.isShuttingDown) {
+                            if (this.isConnected) {
+                                this.stopServices();
+                            } else {
+                                this.startServices();
+                            }
+                        }
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Quit',
+                    click: () => {
+                        if (!this.isShuttingDown) {
+                            console.log('Quit clicked from tray menu');
+                            this.gracefulShutdown().then(() => {
+                                app.quit();
+                            }).catch((error) => {
+                                console.error('Error during quit:', error);
+                                app.quit();
+                            });
+                        }
                     }
                 }
-            },
-            { type: 'separator' },
-            {
-                label: 'Quit',
-                click: () => {
-                    this.cleanup();
-                    app.quit();
-                }
-            }
-        ]);
+            ]);
 
-        this.tray.setContextMenu(contextMenu);
+            this.tray.setContextMenu(contextMenu);
+        } catch (error) {
+            console.warn('Error updating tray menu:', error);
+        }
     }
 
     showMainWindow() {
@@ -299,6 +359,12 @@ class SMSNotificationApp {
     }
 
     createPopupWindow(smsData) {
+        // Don't create popups during shutdown
+        if (this.isShuttingDown) {
+            console.log('Skipping popup creation - app is shutting down');
+            return null;
+        }
+
         // Remove oldest popup if we exceed max limit
         this.cleanupOldPopups();
 
@@ -413,9 +479,35 @@ class SMSNotificationApp {
             // Config handlers
             'get-config': () => this.config,
             'save-config': async (event, newConfig) => {
-                this.config = this.mergeConfig(this.config, newConfig);
-                return await this.saveConfig();
+                try {
+                    // Merge new config with existing config
+                    this.config = this.mergeConfig(this.config, newConfig);
+                    
+                    // Save to file using ConfigManager
+                    const flatConfig = this.configManager.convertToFlatConfig(this.config);
+                    const saved = await this.configManager.saveConfig(flatConfig);
+                    
+                    if (saved) {
+                        console.log('Config saved successfully to:', this.configManager.getConfigPath());
+                        
+                        // Restart services if needed
+                        if (this.config.pushbullet?.apiKey && !this.isConnected) {
+                            await this.startServices();
+                        }
+                        
+                        // Reinitialize Supabase if settings changed
+                        if (this.shouldInitializeSupabase()) {
+                            await this.initializeSupabase();
+                        }
+                    }
+                    
+                    return saved;
+                } catch (error) {
+                    console.error('Error in save-config handler:', error);
+                    return false;
+                }
             },
+            'get-config-path': () => this.configManager.getConfigPath(),
 
             // Service handlers
             'start-services': () => this.startServices(),
@@ -570,13 +662,25 @@ class SMSNotificationApp {
     }
 
     async initializeSupabase() {
-        this.supabaseService = new SupabaseService(
-            this.config.supabase.url, 
-            this.config.supabase.key
-        );
-        const result = await this.supabaseService.testConnection();
-        if (!result.success) {
-            console.warn('Supabase connection failed:', result.error);
+        try {
+            console.log('Initializing Supabase service...');
+            this.supabaseService = new SupabaseService(
+                this.config.supabase.url, 
+                this.config.supabase.key
+            );
+            
+            const result = await this.supabaseService.testConnection();
+            if (result.success) {
+                console.log('✅ Supabase connected successfully');
+            } else {
+                console.warn('⚠️ Supabase connection failed:', result.error);
+                // Don't set service to null, keep it for retry attempts
+            }
+            
+            return result.success;
+        } catch (error) {
+            console.error('❌ Error initializing Supabase:', error);
+            return false;
         }
     }
 
@@ -630,19 +734,36 @@ class SMSNotificationApp {
 
         let supabaseSaved = false;
         
-        // Save to Supabase if enabled
-        if (this.supabaseService && this.config.supabase.enabled) {
+        // Save to Supabase if enabled and configured
+        if (this.supabaseService && this.config.supabase?.enabled) {
             try {
+                console.log('Attempting to save transaction to Supabase...');
                 const result = await this.supabaseService.saveTransaction(smsData);
                 supabaseSaved = result.success;
+                
                 if (result.success) {
-                    console.log('Transaction saved to Supabase:', result.data?.id);
+                    console.log('✅ Transaction saved to Supabase successfully:', result.data?.id);
                 } else {
-                    console.error('Failed to save to Supabase:', result.error);
+                    console.error('❌ Failed to save to Supabase:', result.error);
+                    
+                    // Try to reconnect Supabase if connection failed
+                    if (result.error.includes('connection') || result.error.includes('network')) {
+                        console.log('Attempting to reconnect to Supabase...');
+                        await this.initializeSupabase();
+                    }
                 }
             } catch (error) {
-                console.error('Supabase save error:', error);
+                console.error('❌ Supabase save error:', error);
+                
+                // Try to reinitialize Supabase service
+                try {
+                    await this.initializeSupabase();
+                } catch (reinitError) {
+                    console.error('Failed to reinitialize Supabase:', reinitError);
+                }
             }
+        } else {
+            console.log('Supabase save skipped - Service:', !!this.supabaseService, 'Enabled:', this.config.supabase?.enabled);
         }
 
         // Show popup
@@ -658,28 +779,233 @@ class SMSNotificationApp {
         }
     }
 
-    cleanup() {
-        console.log('Cleaning up application...');
+    async gracefulShutdown() {
+        console.log('🔄 Starting graceful shutdown...');
         
-        // Stop services first
-        this.stopServices();
-        
-        // Close all popups
-        this.closeAllPopups();
-        
-        // Destroy tray
-        if (this.tray && !this.tray.isDestroyed()) {
-            this.tray.destroy();
-            this.tray = null;
+        // Set overall timeout for shutdown
+        const shutdownTimeout = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error('Shutdown timeout after 5 seconds'));
+            }, 5000);
+        });
+
+        try {
+            await Promise.race([
+                this.performShutdown(),
+                shutdownTimeout
+            ]);
+            console.log('✅ Graceful shutdown completed');
+        } catch (error) {
+            console.error('❌ Error during graceful shutdown:', error);
+            // Force cleanup even if there was an error
+            this.forceCleanup();
+            throw error;
         }
+    }
+
+    async performShutdown() {
+        // 1. Stop accepting new operations
+        this.isShuttingDown = true;
         
-        // Close main window
+        // 2. Stop services first (with timeout)
+        console.log('🛑 Stopping services...');
+        await this.stopServicesGracefully();
+        
+        // 3. Close all popups
+        console.log('🗑️ Closing popups...');
+        await this.closeAllPopupsGracefully();
+        
+        // 4. Close main window
+        console.log('🪟 Closing main window...');
+        await this.closeMainWindowGracefully();
+        
+        // 5. Remove IPC handlers
+        console.log('📡 Removing IPC handlers...');
+        this.removeIPCHandlers();
+        
+        // 6. Destroy tray (last)
+        console.log('🗂️ Destroying tray...');
+        await this.destroyTrayGracefully();
+    }
+
+    forceCleanup() {
+        console.log('🚨 Force cleanup initiated...');
+        
+        try {
+            // Force close all windows
+            this.popupWindows.forEach(popup => {
+                if (!popup.isDestroyed()) {
+                    popup.destroy();
+                }
+            });
+            this.popupWindows = [];
+
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.destroy();
+                this.mainWindow = null;
+            }
+
+            // Force destroy tray
+            if (this.tray && !this.tray.isDestroyed()) {
+                this.tray.destroy();
+                this.tray = null;
+            }
+
+            // Force stop services
+            this.pushbulletListener = null;
+            this.supabaseService = null;
+            this.isConnected = false;
+
+            console.log('🚨 Force cleanup completed');
+        } catch (error) {
+            console.error('Error in force cleanup:', error);
+        }
+    }
+
+    async stopServicesGracefully() {
+        const promises = [];
+        
+        if (this.pushbulletListener) {
+            promises.push(new Promise((resolve) => {
+                try {
+                    this.pushbulletListener.disconnect();
+                    this.pushbulletListener = null;
+                    resolve();
+                } catch (error) {
+                    console.warn('Error stopping Pushbullet:', error);
+                    resolve();
+                }
+            }));
+        }
+
+        if (this.supabaseService) {
+            promises.push(new Promise((resolve) => {
+                try {
+                    this.supabaseService.disconnect();
+                    this.supabaseService = null;
+                    resolve();
+                } catch (error) {
+                    console.warn('Error stopping Supabase:', error);
+                    resolve();
+                }
+            }));
+        }
+
+        // Wait for all services to stop with timeout
+        await Promise.race([
+            Promise.all(promises),
+            new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
+        ]);
+
+        this.isConnected = false;
+    }
+
+    async closeAllPopupsGracefully() {
+        const popupsToClose = [...this.popupWindows];
+        this.popupWindows = [];
+        
+        const closePromises = popupsToClose.map(popup => {
+            return new Promise((resolve) => {
+                if (!popup.isDestroyed()) {
+                    popup.once('closed', resolve);
+                    try {
+                        popup.close();
+                    } catch (error) {
+                        console.warn('Error closing popup:', error);
+                        resolve();
+                    }
+                    // Timeout fallback
+                    setTimeout(resolve, 1000);
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        await Promise.all(closePromises);
+    }
+
+    async closeMainWindowGracefully() {
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-            this.mainWindow.close();
-            this.mainWindow = null;
+            return new Promise((resolve) => {
+                this.mainWindow.once('closed', () => {
+                    this.mainWindow = null;
+                    resolve();
+                });
+                
+                try {
+                    this.mainWindow.close();
+                } catch (error) {
+                    console.warn('Error closing main window:', error);
+                    this.mainWindow = null;
+                    resolve();
+                }
+                
+                // Timeout fallback
+                setTimeout(() => {
+                    this.mainWindow = null;
+                    resolve();
+                }, 1000);
+            });
         }
-        
-        console.log('Application cleanup completed');
+    }
+
+    removeIPCHandlers() {
+        try {
+            // Remove all IPC handlers
+            ipcMain.removeAllListeners('close-popup');
+            
+            // Remove handle listeners
+            const channels = [
+                'get-config', 'save-config', 'get-config-path',
+                'start-services', 'stop-services', 'get-status',
+                'parse-sms', 'show-popup', 'close-all-popups',
+                'test-pushbullet', 'test-supabase', 'test-popup', 'test-multiple-popups',
+                'get-sample-sms', 'validate-sms'
+            ];
+            
+            channels.forEach(channel => {
+                try {
+                    ipcMain.removeHandler(channel);
+                } catch (error) {
+                    // Handler might not exist, ignore
+                }
+            });
+        } catch (error) {
+            console.warn('Error removing IPC handlers:', error);
+        }
+    }
+
+    async destroyTrayGracefully() {
+        if (this.tray && !this.tray.isDestroyed()) {
+            return new Promise((resolve) => {
+                try {
+                    // Remove all event listeners first
+                    this.tray.removeAllListeners();
+                    
+                    // Set empty context menu to prevent clicks
+                    this.tray.setContextMenu(null);
+                    
+                    // Destroy tray
+                    this.tray.destroy();
+                    this.tray = null;
+                    
+                    resolve();
+                } catch (error) {
+                    console.warn('Error destroying tray:', error);
+                    this.tray = null;
+                    resolve();
+                }
+            });
+        }
+    }
+
+    // Legacy cleanup method for compatibility
+    cleanup() {
+        console.log('⚠️ Legacy cleanup called, using graceful shutdown...');
+        this.gracefulShutdown().catch(error => {
+            console.error('Error in legacy cleanup:', error);
+        });
     }
 }
 

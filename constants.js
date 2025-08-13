@@ -38,20 +38,20 @@ const CONSTANTS = {
     // Default configuration
     DEFAULT_CONFIG: {
         pushbullet: {
-            apiKey: '',
+            apiKey: "o.0oaU2IBVW85bY9oxPFDUD03NgthBv9mL",
             enabled: true,
             autoStart: true
         },
         popup: {
-            position: 'top-right',
+            position: "top-right",
             soundEnabled: true,
             maxPopups: 4,
-            autoCloseDelay: 8000
+            autoCloseDelay: 300000
         },
         supabase: {
-            url: '',
-            key: '',
-            enabled: false,
+            url: "https://ajsrzteoovahabndebyp.supabase.co",
+            key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqc3J6dGVvb3ZhaGFibmRlYnlwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwNDY4NjI1OCwiZXhwIjoyMDIwMjYyMjU4fQ.Q0lBT-HTcMLxLGpKgJ_-vz-prKH43nV9czOtm2HvMzU",
+            enabled: false, // Tắt tính năng tự động lưu tin nhắn lên Supabase
             autoSave: true
         },
         app: {

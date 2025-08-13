@@ -176,7 +176,56 @@ npm run clean
 - Popup sẽ tự đóng sau thời gian cấu hình
 - Click anywhere trên popup để đóng thủ công
 
+## 🔧 Cấu hình Lưu trữ
+
+### Lưu trữ Config
+- **Vị trí**: Config được lưu tại `C:\tinhansms\config.txt`
+- **Format**: JSON với cấu trúc flat
+- **Persistent**: Config được giữ nguyên khi tắt/mở lại ứng dụng
+- **Tự động tạo**: Thư mục và file sẽ được tạo tự động khi lần đầu lưu
+
+### Tính năng Supabase
+- **`supabaseEnabled: true`**: Bật tính năng tự động lưu giao dịch mới lên Supabase
+- **`supabaseEnabled: false`**: Tắt tính năng tự động lưu, chỉ xem dữ liệu có sẵn
+- **Giao diện**: Luôn hiển thị lịch sử giao dịch nếu Supabase được cấu hình (bất kể enabled hay không)
+
+### Khắc phục sự cố Config
+
+#### Config không lưu được
+- Kiểm tra quyền ghi file tại `C:\tinhansms\`
+- Chạy ứng dụng với quyền Administrator nếu cần
+- Kiểm tra log trong console để xem lỗi cụ thể
+
+#### Supabase không lưu dữ liệu
+- Đảm bảo `supabaseEnabled: true` trong config
+- Kiểm tra kết nối Supabase bằng nút "Test Supabase"
+- Đảm bảo bảng `banking_transactions` đã được tạo
+- Kiểm tra Supabase Key có đúng quyền không
+
+#### Không nhận được SMS
+- Kiểm tra Pushbullet API Key
+- Đảm bảo điện thoại đã cài Pushbullet và đăng nhập
+- Kiểm tra kết nối internet
+
 ## Changelog
+
+### v1.2.1 - Graceful Shutdown Fix
+- ✅ **Sửa lỗi quit app**: Khắc phục lỗi "Uncaught exception" khi thoát ứng dụng
+- ✅ **Graceful shutdown**: Thoát ứng dụng theo thứ tự đúng để tránh lỗi
+- ✅ **Timeout protection**: Tự động force quit nếu shutdown quá lâu (5 giây)
+- ✅ **Error handling**: Xử lý lỗi trong quá trình shutdown
+- ✅ **Resource cleanup**: Đảm bảo tất cả resources được giải phóng đúng cách
+- ✅ **IPC cleanup**: Remove tất cả IPC handlers trước khi quit
+- ✅ **Tray safety**: Kiểm tra tray state trước khi thao tác
+
+### v1.2.0 - Config & Supabase Fixes
+- ✅ **Sửa lỗi lưu config**: Config giờ được lưu persistent tại `C:\tinhansms\config.txt`
+- ✅ **Cải thiện Supabase**: Sửa lỗi không lưu được dữ liệu lên Supabase
+- ✅ **Luôn hiển thị giao dịch**: Giao diện luôn load lịch sử giao dịch nếu Supabase được cấu hình
+- ✅ **Tự động setup**: Tự động tạo thư mục config và kiểm tra quyền ghi
+- ✅ **Logging cải thiện**: Thêm log chi tiết để debug các vấn đề
+- ✅ **Retry mechanism**: Tự động thử lại kết nối Supabase khi lỗi
+- ✅ **Validation**: Kiểm tra dữ liệu trước khi lưu vào Supabase
 
 ### v1.1.0
 - ✅ Sửa lỗi đóng cửa sổ popup
