@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS Notification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            padding: 0px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 5px;
+            width: calc(50% - 10px);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            color: white;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .config-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .config-row input,
+        .config-row select {
+            width: 150px;
+        }
+
+        .transaction-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .transaction-item {
+            padding: 12px;
+            border-bottom: 1px solid #f1f3f4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .transaction-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-bank {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .transaction-amount {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 2px 0;
+        }
+
+        .transaction-amount.incoming {
+            color: #28a745;
+        }
+
+        .transaction-amount.outgoing {
+            color: #dc3545;
+        }
+
+        .transaction-description {
+
+            font-size: 12px;
+            text-wrap: balance;
+            color: #6c757d;
+            margin-bottom: 2px;
+            word-break: break-all;
+            overflow-wrap: break-word;
+            text-overflow: ellipsis;
+
+        }
+
+        .transaction-time {
+            font-size: 11px;
+            color: #adb5bd;
+        }
+
+        .transaction-balance {
+            font-size: 12px;
+            color: #495057;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .refresh-btn {
+            width: auto;
+            padding: 8px 16px;
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .balance-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .balance-summary h4 {
+            margin-bottom: 15px;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .balance-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .balance-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .balance-card h5 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .balance-amount {
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1.2;
+        }
+
+        .total-balance {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .total-balance h5 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .total-amount {
+            font-size: 24px;
+            font-weight: 900;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 SMS Notification</h1>
+            <p>Ứng dụng thông báo SMS ngân hàng</p>
+        </div>
+
+        <div id="status" class="status disconnected">
+            🔴 Chưa kết nối
+        </div>
+
+        <div class="section">
+            <h3>⚙️ Cấu hình</h3>
+            <div class="config-row">
+                <label>Vị trí popup:</label>
+                <select id="position">
+                    <option value="top-right">Góc trên phải</option>
+                    <option value="top-left">Góc trên trái</option>
+                    <option value="bottom-right">Góc dưới phải</option>
+                    <option value="bottom-left">Góc dưới trái</option>
+                </select>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="soundEnabled" checked>
+                <label for="soundEnabled">Bật âm thanh</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="supabaseEnabled">
+                <label for="supabaseEnabled">💾 Lưu dữ liệu lên Supabase</label>
+            </div>
+            <div class="config-row">
+                <label>Số popup tối đa:</label>
+                <input type="number" id="maxPopups" value="4" min="1" max="8">
+            </div>
+            <div class="config-row">
+                <label>Tự đóng sau (giây):</label>
+                <input type="number" id="autoCloseDelay" value="8" min="0" max="30">
+            </div>
+            <button class="btn btn-primary btn-full" onclick="updateConfig()">
+                💾 Lưu cấu hình
+            </button>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Test Popup</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <button class="btn btn-success" onclick="testViettinSMS()">
+                    📱 VietinBank
+                </button>
+                <button class="btn btn-success" onclick="testVietcombankSMS()">
+                    📱 Vietcombank
+                </button>
+                <button class="btn btn-warning" onclick="testMultiplePopups()">
+                    🔄 Test 3 popup
+                </button>
+                <button class="btn btn-danger" onclick="closeAllPopups()">
+                    ❌ Đóng tất cả
+                </button>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="testCustomPopup()">
+                🎯 Test popup tùy chỉnh
+            </button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Lịch sử giao dịch</h3>
+            
+            <!-- Balance Summary -->
+            <div id="balanceSummary" class="balance-summary" style="display: none;">
+                <h4>💰 Tổng số dư hiện tại</h4>
+                <div class="balance-cards">
+                    <div class="balance-card">
+                        <h5>VietinBank</h5>
+                        <div class="balance-amount" id="vietinBalance">0 VND</div>
+                    </div>
+                    <div class="balance-card">
+                        <h5>Vietcombank</h5>
+                        <div class="balance-amount" id="vietcombankBalance">0 VND</div>
+                    </div>
+                    <div class="balance-card">
+                        <h5>Khác</h5>
+                        <div class="balance-amount" id="otherBalance">0 VND</div>
+                    </div>
+                </div>
+                <div class="total-balance">
+                    <h5>Tổng cộng</h5>
+                    <div class="total-amount" id="totalBalance">0 VND</div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <span style="font-size: 14px; color: #6c757d;">50 giao dịch gần nhất</span>
+                <button class="btn btn-primary refresh-btn" onclick="loadTransactions()">
+                    🔄 Tải lại
+                </button>
+            </div>
+            <div id="transactionList" class="transaction-list">
+                <div class="loading">Đang tải dữ liệu...</div>
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="scripts/supabase-js@2.js"></script>
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        let currentConfig = {};
+        let supabaseClient = null;
+
+        // Load config on startup
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await Promise.all([
+                    loadConfig(),
+                    updateStatus()
+                ]);
+
+                // Load transactions if Supabase is enabled
+                if (currentConfig.supabase?.enabled && currentConfig.supabase?.url && currentConfig.supabase?.key) {
+                    await loadTransactions();
+                }
+            } catch (error) {
+                showMessage('❌ Lỗi khởi tạo ứng dụng: ' + error.message, 'error');
+            }
+        });
+
+
+
+        async function loadConfig() {
+            currentConfig = await ipcRenderer.invoke('get-config');
+            document.getElementById('position').value = currentConfig.popup?.position || 'top-right';
+            document.getElementById('soundEnabled').checked = currentConfig.popup?.soundEnabled !== false;
+            document.getElementById('supabaseEnabled').checked = currentConfig.supabase?.enabled === true;
+            document.getElementById('maxPopups').value = currentConfig.popup?.maxPopups || 4;
+            document.getElementById('autoCloseDelay').value = (currentConfig.popup?.autoCloseDelay || 8000) / 1000;
+
+            // Initialize Supabase client
+            initializeSupabase();
+        }
+
+        function initializeSupabase() {
+            if (currentConfig.supabase?.url && currentConfig.supabase?.key) {
+                try {
+                    supabaseClient = supabase.createClient(
+                        currentConfig.supabase.url,
+                        currentConfig.supabase.key
+                    );
+                    console.log('Supabase client initialized');
+                } catch (error) {
+                    console.error('Failed to initialize Supabase client:', error);
+                    supabaseClient = null;
+                }
+            } else {
+                supabaseClient = null;
+            }
+        }
+
+        async function updateStatus() {
+            const status = await ipcRenderer.invoke('get-status');
+            const statusEl = document.getElementById('status');
+
+            let statusText = '';
+            let statusClass = 'status ';
+
+            if (status.connected) {
+                statusClass += 'connected';
+                statusText = '🟢 Pushbullet: Đã kết nối';
+            } else {
+                statusClass += 'disconnected';
+                statusText = '🔴 Pushbullet: Chưa kết nối';
+            }
+
+            // Add Supabase status
+            if (status.config?.supabaseEnabled) {
+                if (status.config?.supabaseConfigured) {
+                    statusText += ' | 💾 Supabase: Bật';
+                } else {
+                    statusText += ' | ⚠️ Supabase: Chưa cấu hình';
+                }
+            } else {
+                statusText += ' | 💾 Supabase: Tắt';
+            }
+
+            statusEl.className = statusClass;
+            statusEl.textContent = statusText;
+        }
+
+        async function updateConfig() {
+            try {
+                const autoCloseSeconds = Math.max(0, Math.min(30, parseInt(document.getElementById('autoCloseDelay').value) || 8));
+                const newConfig = {
+                    popup: {
+                        position: document.getElementById('position').value,
+                        soundEnabled: document.getElementById('soundEnabled').checked,
+                        maxPopups: Math.max(1, Math.min(8, parseInt(document.getElementById('maxPopups').value) || 4)),
+                        autoCloseDelay: autoCloseSeconds * 1000
+                    },
+                    supabase: {
+                        enabled: document.getElementById('supabaseEnabled').checked
+                    }
+                };
+
+                const saved = await ipcRenderer.invoke('save-config', newConfig);
+                if (saved) {
+                    currentConfig = { ...currentConfig, ...newConfig };
+                    const supabaseStatus = newConfig.supabase.enabled ? 'bật' : 'tắt';
+                    showMessage(`✅ Cấu hình đã được lưu! Supabase: ${supabaseStatus}`, 'success');
+
+                    // Reload transactions if Supabase settings changed
+                    await loadTransactions();
+                } else {
+                    showMessage('❌ Lỗi khi lưu cấu hình!', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        async function testViettinSMS() {
+            const samples = await ipcRenderer.invoke('get-sample-sms');
+            const smsData = await ipcRenderer.invoke('parse-sms', samples.vietinbank, 'VietinBank');
+            await ipcRenderer.invoke('show-popup', smsData);
+            showMessage('📱 Hiển thị popup VietinBank', 'info');
+        }
+
+        async function testVietcombankSMS() {
+            const samples = await ipcRenderer.invoke('get-sample-sms');
+            const smsData = await ipcRenderer.invoke('parse-sms', samples.vietcombank, 'Vietcombank');
+            await ipcRenderer.invoke('show-popup', smsData);
+            showMessage('📱 Hiển thị popup Vietcombank', 'info');
+        }
+
+        async function testMultiplePopups() {
+            try {
+                const result = await ipcRenderer.invoke('test-multiple-popups');
+                if (result.success) {
+                    showMessage(`📱 Hiển thị ${result.count} popup liên tiếp`, 'info');
+                } else {
+                    showMessage('❌ Lỗi hiển thị popup', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Lỗi hiển thị popup: ' + error.message, 'error');
+            }
+        }
+
+        async function testCustomPopup() {
+            const customSMS = {
+                bank: 'vietinbank',
+                sender: 'VietinBank',
+                transactionType: 'credit',
+                transactionAmount: 5000000,
+                balance: 99999999,
+                description: 'Test popup tuy chinh - Kiem tra hien thi',
+                timestamp: Date.now(),
+                isValid: true
+            };
+
+            try {
+                await ipcRenderer.invoke('test-popup', customSMS);
+                showMessage('🎯 Hiển thị popup tùy chỉnh', 'info');
+            } catch (error) {
+                showMessage('❌ Lỗi hiển thị popup: ' + error.message, 'error');
+            }
+        }
+
+
+
+        async function closeAllPopups() {
+            await ipcRenderer.invoke('close-all-popups');
+            showMessage('🗑️ Đã đóng tất cả popup', 'info');
+        }
+
+        async function loadTransactions() {
+            const listEl = document.getElementById('transactionList');
+
+            if (!supabaseClient) {
+                listEl.innerHTML = '<div class="no-data">⚠️ Supabase chưa được cấu hình</div>';
+                document.getElementById('balanceSummary').style.display = 'none';
+                return;
+            }
+
+            if (!currentConfig.supabase?.enabled) {
+                listEl.innerHTML = '<div class="no-data">💾 Supabase đã tắt</div>';
+                document.getElementById('balanceSummary').style.display = 'none';
+                return;
+            }
+
+            listEl.innerHTML = '<div class="loading">🔄 Đang tải dữ liệu...</div>';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('banking_transactions')
+                    .select('*')
+                    .order('received_at', { ascending: false })
+                    .limit(50);
+
+                if (error) {
+                    throw error;
+                }
+
+                if (!data || data.length === 0) {
+                    listEl.innerHTML = '<div class="no-data">📭 Chưa có giao dịch nào</div>';
+                    document.getElementById('balanceSummary').style.display = 'none';
+                    return;
+                }
+
+                renderTransactions(data);
+                calculateBalanceSummary(data);
+                showMessage(`✅ Đã tải ${data.length} giao dịch`, 'success');
+
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                listEl.innerHTML = `<div class="no-data">❌ Lỗi: ${error.message}</div>`;
+                document.getElementById('balanceSummary').style.display = 'none';
+                showMessage('❌ Lỗi khi tải dữ liệu từ Supabase', 'error');
+            }
+        }
+
+        function renderTransactions(transactions) {
+            const listEl = document.getElementById('transactionList');
+
+            if (!transactions || transactions.length === 0) {
+                listEl.innerHTML = '<div class="no-data">📭 Chưa có giao dịch nào</div>';
+                return;
+            }
+
+            const html = transactions.map(transaction => {
+                const isIncoming = transaction.transaction_type === 'incoming';
+                const amountClass = isIncoming ? 'incoming' : 'outgoing';
+                const amountSign = isIncoming ? '+' : '-';
+
+                return `
+                    <div class="transaction-item">
+                        <div class="transaction-info">
+                            <div class="transaction-bank">${transaction.bank || 'Unknown'}</div>
+                            <div class="transaction-amount ${amountClass}">
+                                ${amountSign}${formatCurrency(transaction.amount)} VND
+                            </div>
+                            <div class="transaction-description">
+                                ${transaction.description || 'Không có mô tả'}
+                            </div>
+                            <div class="transaction-time">
+                                ${formatDateTime(transaction.received_at)}
+                            </div>
+                        </div>
+                        <div class="transaction-balance">
+                            SD: ${formatCurrency(transaction.balance)} VND
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            listEl.innerHTML = html;
+        }
+
+        function calculateBalanceSummary(transactions) {
+            if (!transactions || transactions.length === 0) {
+                document.getElementById('balanceSummary').style.display = 'none';
+                return;
+            }
+
+            // Sort transactions by received_at descending to get latest first
+            const sortedTransactions = [...transactions].sort((a, b) => 
+                new Date(b.received_at) - new Date(a.received_at)
+            );
+
+            // Get latest balance for each bank
+            const latestBalances = {};
+            
+            sortedTransactions.forEach(transaction => {
+                const bank = transaction.bank?.toLowerCase() || 'other';
+                // Only take the first (latest) transaction for each bank
+                if (!latestBalances[bank] && transaction.balance != null) {
+                    latestBalances[bank] = parseFloat(transaction.balance) || 0;
+                }
+            });
+
+            // Get balances for main banks
+            const vietinBalance = latestBalances['vietinbank'] || 0;
+            const vietcombankBalance = latestBalances['vietcombank'] || 0;
+            
+            // Calculate other banks balance
+            let otherBalance = 0;
+            Object.keys(latestBalances).forEach(bank => {
+                if (bank !== 'vietinbank' && bank !== 'vietcombank') {
+                    otherBalance += latestBalances[bank];
+                }
+            });
+
+            const totalBalance = vietinBalance + vietcombankBalance + otherBalance;
+
+            // Update UI
+            document.getElementById('vietinBalance').textContent = formatCurrency(vietinBalance) + ' VND';
+            document.getElementById('vietcombankBalance').textContent = formatCurrency(vietcombankBalance) + ' VND';
+            document.getElementById('otherBalance').textContent = formatCurrency(otherBalance) + ' VND';
+            document.getElementById('totalBalance').textContent = formatCurrency(totalBalance) + ' VND';
+
+            // Show summary if we have any balance data
+            if (Object.keys(latestBalances).length > 0) {
+                document.getElementById('balanceSummary').style.display = 'block';
+            } else {
+                document.getElementById('balanceSummary').style.display = 'none';
+            }
+
+            // Log for debugging
+            console.log('Balance Summary:', {
+                vietinbank: vietinBalance,
+                vietcombank: vietcombankBalance,
+                other: otherBalance,
+                total: totalBalance,
+                latestBalances: latestBalances
+            });
+        }
+
+        function formatCurrency(amount) {
+            if (!amount) return '0';
+            return new Intl.NumberFormat('vi-VN').format(amount);
+        }
+
+        function formatDateTime(timestamp) {
+            if (!timestamp) return '--:--';
+
+            try {
+                const date = new Date(timestamp);
+                if (isNaN(date.getTime())) return '--:--';
+
+                return date.toLocaleString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                return '--:--';
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = message;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // Listen for SMS received
+        ipcRenderer.on('sms-received', (event, smsData) => {
+            let message = `💰 ${smsData.bank.toUpperCase()}: ${smsData.transactionAmount} VND`;
+
+            if (smsData.supabaseEnabled) {
+                if (smsData.supabaseSaved) {
+                    message += ' ✅ Đã lưu DB';
+                    // Reload transactions to show new data
+                    setTimeout(() => loadTransactions(), 1000);
+                } else {
+                    message += ' ❌ Lỗi lưu DB';
+                }
+            }
+
+            showMessage(message, 'success');
+        });
+
+        // Listen for window focus to reload transactions
+        window.addEventListener('focus', () => {
+            if (currentConfig.supabase?.enabled && supabaseClient) {
+                loadTransactions();
+            }
+        });
+
+        // Listen for window opened from tray
+        ipcRenderer.on('window-opened', () => {
+            if (currentConfig.supabase?.enabled && supabaseClient) {
+                loadTransactions();
+            }
+        });
+
+        // Update status periodically
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông báo SMS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .popup-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #ffffff;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ff4757;
+            border: none;
+            color: #ffffff;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.2s;
+            opacity: 0.7;
+        }
+
+        .close-btn:hover {
+            background: #ff3742;
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        .popup-container:hover .close-btn {
+            opacity: 1;
+        }
+
+        .popup-container {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .popup-container.newest {
+            border: 5px solid #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+            animation: slideIn 0.3s ease-out, blinkBorder 1s ease-in-out infinite;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes blinkBorder {
+
+            0%,
+            100% {
+                border-color: #ff0000;
+                box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+            }
+
+            50% {
+                border-color: #ffff00;
+                box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+            }
+        }
+
+        .popup-container.closing {
+            animation: slideOut 0.2s ease-in forwards;
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .header-section {
+            padding: 10px 30px 10px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #e9ecef;
+            background-color: #f8f9fa;
+            height: 50px;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .bank-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .bank-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bank-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #212529;
+            line-height: 1.2;
+        }
+
+        .notification-type {
+            font-size: 11px;
+            color: #6c757d;
+            line-height: 1;
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 12px;
+        }
+
+        .header-time {
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .header-balance {
+            color: #333;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .content-section {
+            padding: 1px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-height: 0;
+        }
+
+        .amount-display {
+            text-align: center;
+            padding: 1px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .amount-value {
+            font-size: 50px;
+            font-weight: 900;
+            line-height: 1.1;
+            color: #1567e2;
+        }
+
+        .transaction-content {
+            background: #f8f9fa;
+            padding: 1px;
+            border-left: 4px solid #28a745;
+            border-radius: 6px;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .content-text {
+            font-size: 12px;
+            color: #343a40;
+            line-height: 1.4;
+            font-weight: 500;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            /* Bắt buộc ngắt từ nếu quá dài */
+            white-space: normal;
+            /* Cho phép xuống dòng */
+            hyphens: auto;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Bank themes */
+        .vietcombank .header-section {
+            background: linear-gradient(to right, #f8fff8, #fff);
+        }
+
+        .vietcombank .transaction-content {
+            border-left-color: #27ae60;
+        }
+
+        .vietinbank .header-section {
+            background: linear-gradient(to right, #fff8f8, #fff);
+        }
+
+        .vietinbank .transaction-content {
+            border-left-color: #e74c3c;
+        }
+
+        .credit .amount-value {
+            color: #00C851;
+        }
+
+        .debit .amount-value {
+            color: #ff4444;
+        }
+
+        .amount-value.pulse {
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="popup-container">
+        <button class="close-btn" id="closeBtn">&times;</button>
+
+        <div class="header-section">
+            <div class="header-left">
+                <div class="bank-logo" id="bankLogo">VCB</div>
+                <div class="bank-info">
+                    <div class="bank-name" id="bankName">Vietcombank</div>
+                    <div class="notification-type">Thông báo SMS</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-time" id="timeValue">12:30 12-08</div>
+                <div class="header-balance" id="headerBalance">SD: 0 VND</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="amount-display">
+                <div class="amount-value" id="amountValue">+60.000 VND</div>
+            </div>
+
+            <div class="transaction-content">
+                <span>
+                    <div class="content-text" id="contentText">
+
+                        Nội dung giao dịch...
+                    </div>
+                </span>
+
+            </div>
+        </div>
+    </div>
+
+    <audio id="notificationSound" preload="auto">
+        <source src="tingting.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        function closePopup() {
+            const container = document.querySelector('.popup-container');
+            container.classList.add('closing');
+
+            setTimeout(() => {
+                ipcRenderer.send('close-popup');
+            }, 200);
+        }
+
+        // Auto-hide close button initially
+        document.addEventListener('DOMContentLoaded', () => {
+            const closeBtn = document.getElementById('closeBtn');
+            const container = document.querySelector('.popup-container');
+
+            // Show close button on hover
+            container.addEventListener('mouseenter', () => {
+                closeBtn.style.opacity = '1';
+            });
+
+            container.addEventListener('mouseleave', () => {
+                closeBtn.style.opacity = '0.7';
+            });
+
+            // Click anywhere to close (except close button)
+            container.addEventListener('click', (e) => {
+                if (e.target !== closeBtn && !closeBtn.contains(e.target)) {
+                    closePopup();
+                }
+            });
+        });
+
+        document.getElementById('closeBtn').addEventListener('click', closePopup);
+
+        const Helpers = require('./utils/helpers');
+
+        function formatCurrency(amount) {
+            return Helpers.formatCurrency(amount);
+        }
+
+        function formatTime(timestamp) {
+            return Helpers.formatTime(timestamp);
+        }
+
+        function updatePopup(smsData) {
+            const body = document.body;
+            const container = document.querySelector('.popup-container');
+            const bankLogo = document.getElementById('bankLogo');
+            const bankName = document.getElementById('bankName');
+            const timeValue = document.getElementById('timeValue');
+            const headerBalance = document.getElementById('headerBalance');
+            const amountValue = document.getElementById('amountValue');
+            const contentText = document.getElementById('contentText');
+
+            // Reset
+            body.className = '';
+            amountValue.className = 'amount-value';
+            container.classList.remove('newest');
+
+            // Apply special styling for newest popup
+            if (smsData.isNewest) {
+                container.classList.add('newest');
+                // Không tự động loại bỏ hiệu ứng - chỉ loại bỏ khi có popup mới hoặc đóng popup
+            }
+
+            // Bank theme and logo
+            const bankConfig = {
+                'vietinbank': {
+                    class: 'vietinbank',
+                    logo: 'VTB',
+                    background: '#e74c3c',
+                    name: 'VietinBank'
+                },
+                'vietcombank': {
+                    class: 'vietcombank',
+                    logo: 'VCB',
+                    background: '#27ae60',
+                    name: 'Vietcombank'
+                }
+            };
+
+            const config = bankConfig[smsData.bank] || {
+                class: 'default',
+                logo: '🏦',
+                background: '#6c757d',
+                name: smsData.sender || 'Ngân hàng'
+            };
+
+            body.classList.add(config.class);
+            bankLogo.textContent = config.logo;
+            bankLogo.style.background = config.background;
+            bankLogo.style.color = 'white';
+            bankName.textContent = config.name;
+
+            // Format time and balance
+            timeValue.textContent = formatTime(smsData.timestamp);
+            headerBalance.textContent = smsData.balance ?
+                'SD: ' + formatCurrency(smsData.balance) + ' VND' : 'SD: N/A';
+
+            // Format amount with proper sign and color
+            const sign = smsData.transactionType === 'credit' ? '+' : '-';
+            const formattedAmount = formatCurrency(smsData.transactionAmount || 0);
+            amountValue.textContent = `${sign}${formattedAmount} VND`;
+            amountValue.classList.add(smsData.transactionType === 'credit' ? 'credit' : 'debit');
+
+            // Content with better formatting - hiển thị đầy đủ nội dung
+            const description = smsData.description || 'Không có thông tin';
+            contentText.textContent = description;
+            contentText.title = description; // Show full text on hover
+
+            // Animation
+            amountValue.classList.add('pulse');
+            setTimeout(() => amountValue.classList.remove('pulse'), 1000);
+        }
+
+        function updatePopupStatus(statusData) {
+            const container = document.querySelector('.popup-container');
+
+            if (statusData.isNewest) {
+                container.classList.add('newest');
+                // Không tự động loại bỏ hiệu ứng - chỉ loại bỏ khi có popup mới hoặc đóng popup
+            } else {
+                container.classList.remove('newest');
+            }
+        }
+
+        function playSound() {
+            const audio = document.getElementById('notificationSound');
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(() => { });
+            }
+        }
+
+        ipcRenderer.on('sms-data', (event, smsData) => {
+            updatePopup(smsData);
+            playSound();
+        });
+
+        ipcRenderer.on('update-popup-status', (event, statusData) => {
+            updatePopupStatus(statusData);
+        });
+    </script>
+</body>
+
+</html>

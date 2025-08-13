@@ -1,0 +1,23 @@
+{
+  "pushbullet": {
+    "apiKey": "o.0oaU2IBVW85bY9oxPFDUD03NgthBv9mL",
+    "enabled": true,
+    "autoStart": true
+  },
+  "popup": {
+    "position": "top-right",
+    "soundEnabled": true,
+    "maxPopups": 4
+  },
+  "supabase": {
+    "url": "https://ajsrzteoovahabndebyp.supabase.co",
+    "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqc3J6dGVvb3ZhaGFibmRlYnlwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwNDY4NjI1OCwiZXhwIjoyMDIwMjYyMjU4fQ.Q0lBT-HTcMLxLGpKgJ_-vz-prKH43nV9czOtm2HvMzU",
+    "enabled": true,
+    "autoSave": true
+  },
+  "app": {
+    "startWithWindows": false,
+    "minimizeToTray": true,
+    "showNotifications": true
+  }
+}

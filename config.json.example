@@ -1,0 +1,24 @@
+{
+  "pushbullet": {
+    "apiKey": "your-pushbullet-api-key-here",
+    "enabled": true,
+    "autoStart": true
+  },
+  "popup": {
+    "position": "top-right",
+    "soundEnabled": true,
+    "maxPopups": 4,
+    "autoCloseDelay": 8000
+  },
+  "supabase": {
+    "url": "https://your-project.supabase.co",
+    "key": "your-supabase-anon-key-here",
+    "enabled": false,
+    "autoSave": true
+  },
+  "app": {
+    "startWithWindows": false,
+    "minimizeToTray": true,
+    "showNotifications": true
+  }
+}

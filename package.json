@@ -1,0 +1,96 @@
+{
+  "name": "sms-notification-app",
+  "version": "1.0.0",
+  "description": "SMS Notification Popup App",
+  "main": "app.js",
+  "author": {
+    "name": "SMS Notification Team",
+    "email": "support@smsnotification.com"
+  },
+  "bin": {
+    "sms-notification": "./cli.js"
+  },
+  "scripts": {
+    "start": "npm run validate-config && electron app.js",
+    "dev": "electron app.js --dev",
+    "build": "npm run validate-config && npm run create-icon && electron-builder",
+    "build:win": "npm run validate-config && npm run create-icon && electron-builder --win",
+    "build:portable": "npm run validate-config && npm run create-icon && electron-builder --win portable",
+    "clean": "rimraf dist logs",
+    "validate-config": "node scripts/validate-config.js",
+    "create-icon": "node scripts/create-icon.js",
+    "setup": "cp config.json.example config.json && echo 'Please edit config.json with your API keys'",
+    "test": "echo \"No tests specified\" && exit 0",
+    "lint": "echo \"No linting configured\" && exit 0",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.smsnotification.app",
+    "productName": "SMS Notification",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/**/test/**",
+      "!**/node_modules/**/tests/**",
+      "!**/node_modules/**/*.md",
+      "!**/node_modules/**/*.map",
+      "!**/node_modules/**/docs/**",
+      "!**/.git/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createStartMenuShortcut": true,
+      "createDesktopShortcut": true,
+      "runAfterFinish": true,
+      "allowElevation": false,
+      "deleteAppDataOnUninstall": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.exe"
+    },
+    "extraResources": [
+      {
+        "from": "assets/",
+        "to": "assets/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "compression": "maximum"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "rimraf": "^5.0.5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.54.0",
+    "node-fetch": "^2.7.0",
+    "pushbullet": "^2.4.0",
+    "request-promise-native": "^1.0.9",
+    "ws": "^8.14.2"
+  }
+}
