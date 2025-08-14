@@ -13,150 +13,358 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            min-height: 100vh;
+            font-family: 'MS Sans Serif', 'Tahoma', sans-serif;
+            background: #c0c0c0;
+            color: #000000;
+            padding: 0;
+            font-size: 11px;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .title-bar {
+            background: linear-gradient(to bottom, #0a246a 0%, #a6caf0 3%, #0a246a 100%);
+            color: white;
+            padding: 3px 8px;
+            font-weight: bold;
+            font-size: 11px;
+            border-bottom: 1px solid #808080;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            -webkit-app-region: drag;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 2px;
+            -webkit-app-region: no-drag;
+        }
+
+        .window-control-btn {
+            width: 16px;
+            height: 14px;
+            border: 1px outset #c0c0c0;
+            background: #c0c0c0;
+            color: #000000;
+            font-size: 8px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .container {
-            background: white;
-            padding: 0px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 700px;
-            max-height: 90vh;
-            overflow-y: auto;
+        .window-control-btn:hover {
+            background: #e0e0e0;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+        .window-control-btn:active {
+            border: 1px inset #c0c0c0;
         }
 
-        .header h1 {
-            color: #667eea;
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
-
-        .status {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .status.connected {
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #c3e6cb;
-        }
-
-        .status.disconnected {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
-        }
-
-        .section {
-            margin-bottom: 25px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .section h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .checkbox-group {
+        .menu-bar {
+            background: #c0c0c0;
+            border-bottom: 1px solid #808080;
+            padding: 2px;
+            font-size: 11px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+            justify-content: space-between;
         }
 
-        .checkbox-group input[type="checkbox"] {
-            width: auto;
+        .menu-left {
+            display: flex;
+            align-items: center;
         }
 
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
+        .menu-item {
+            display: inline-block;
+            padding: 4px 8px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s;
-            margin: 5px;
-            width: calc(50% - 10px);
+            border: 1px solid transparent;
+            position: relative;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        .menu-item:hover {
+            border: 1px outset #c0c0c0;
+            background: #e0e0e0;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            min-width: 150px;
+            z-index: 1000;
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
-        .btn-success {
-            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
-            color: white;
+        .dropdown-menu.show {
+            display: block;
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-            color: white;
+        .dropdown-item {
+            display: block;
+            padding: 4px 8px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            font-size: 11px;
+            white-space: nowrap;
         }
 
-        .btn-warning {
-            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-            color: white;
+        .dropdown-item:hover {
+            background: #e0e0e0;
+            border: 1px inset #c0c0c0;
         }
 
-        .btn-full {
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid #404040;
+        }
+
+        .status-dot.connected {
+            background: #00ff00;
+        }
+
+        .status-dot.disconnected {
+            background: #ff0000;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 8px;
+            background: #c0c0c0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .group-box {
+            border: 2px inset #c0c0c0;
+            background: #c0c0c0;
+            flex-shrink: 0;
+        }
+
+        .group-box-title {
+            background: #c0c0c0;
+            padding: 2px 8px;
+            font-weight: bold;
+            font-size: 11px;
+            color: #000080;
+            border-bottom: 1px solid #808080;
+        }
+
+        .group-box-content {
+            padding: 12px;
+        }
+
+        .config-row {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-layout {
+            display: flex;
+            gap: 16px;
+        }
+
+        .config-column {
+            flex: 1;
+        }
+
+        .config-column-title {
+            font-weight: bold;
+            font-size: 10px;
+            color: #000080;
+            margin-bottom: 8px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid #808080;
+        }
+
+        .config-row label {
+            min-width: 140px;
+            font-size: 11px;
+            color: #000000;
+        }
+
+        .config-row input[type="text"],
+        .config-row input[type="number"],
+        .config-row input[type="password"],
+        .config-row select,
+        .config-row textarea {
+            flex: 1;
+            padding: 2px 4px;
+            border: 2px inset #c0c0c0;
+            background: #ffffff;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', 'Tahoma', sans-serif;
+        }
+
+        .config-row input[type="text"]:focus,
+        .config-row input[type="number"]:focus,
+        .config-row input[type="password"]:focus,
+        .config-row select:focus,
+        .config-row textarea:focus {
+            outline: none;
+            border: 2px inset #0000ff;
+        }
+
+        .config-row input[type="checkbox"] {
+            margin-right: 4px;
+        }
+
+        .transaction-history {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px inset #c0c0c0;
+            background: #ffffff;
+        }
+
+        .transaction-table {
             width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', 'Tahoma', sans-serif;
+        }
+
+        .transaction-table th {
+            background: #c0c0c0;
+            border: 1px solid #808080;
+            padding: 4px 6px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 10px;
+            color: #000080;
+        }
+
+        .transaction-table td {
+            border: 1px solid #c0c0c0;
+            padding: 4px 6px;
+            vertical-align: top;
+        }
+
+        .transaction-table tr:nth-child(even) {
+            background: #f8f8f8;
+        }
+
+        .transaction-table tr:hover {
+            background: #e0e0e0;
+        }
+
+        .transaction-time {
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .transaction-bank {
+            font-weight: bold;
+            color: #000080;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .transaction-amount {
+            font-weight: bold;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .transaction-amount.incoming {
+            color: #008000;
+        }
+
+        .transaction-amount.outgoing {
+            color: #800000;
+        }
+
+        .transaction-balance {
+            font-weight: bold;
+            text-align: right;
+            white-space: nowrap;
+            color: #000080;
+        }
+
+        .balance-summary {
+            margin-bottom: 12px;
+            border: 2px inset #c0c0c0;
+            background: #ffffff;
+            padding: 8px;
+        }
+
+        .balance-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: 'MS Sans Serif', 'Tahoma', sans-serif;
+        }
+
+        .balance-table td {
+            padding: 4px 8px;
+            border: none;
+        }
+
+        .balance-table td:first-child {
+            font-weight: bold;
+            color: #000080;
+            width: 120px;
+        }
+
+        .balance-amount {
+            text-align: right;
+            font-weight: bold;
+            color: #008000;
+        }
+
+        .total-row {
+            border-top: 1px solid #808080;
+            margin-top: 4px;
+        }
+
+        .total-row td {
+            padding-top: 8px;
+        }
+
+        .total-amount {
+            color: #000080;
+            font-size: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
         }
 
         .message {
@@ -184,327 +392,189 @@
             border: 1px solid #bee5eb;
         }
 
-        .config-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
+        /* Scrollbar styling for Windows classic look */
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
         }
 
-        .config-row input,
-        .config-row select {
-            width: 150px;
+        ::-webkit-scrollbar-track {
+            background: #c0c0c0;
+            border: 1px inset #c0c0c0;
         }
 
-        .transaction-list {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            background: white;
+        ::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border: 2px outset #c0c0c0;
         }
 
-        .transaction-item {
-            padding: 12px;
-            border-bottom: 1px solid #f1f3f4;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background-color 0.2s;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #e0e0e0;
         }
 
-        .transaction-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .transaction-item:last-child {
-            border-bottom: none;
-        }
-
-        .transaction-info {
-            flex: 1;
-        }
-
-        .transaction-bank {
-            font-weight: 600;
-            color: #667eea;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .transaction-amount {
-            font-size: 16px;
-            font-weight: 700;
-            margin: 2px 0;
-        }
-
-        .transaction-amount.incoming {
-            color: #28a745;
-        }
-
-        .transaction-amount.outgoing {
-            color: #dc3545;
-        }
-
-        .transaction-description {
-
-            font-size: 12px;
-            text-wrap: balance;
-            color: #6c757d;
-            margin-bottom: 2px;
-            word-break: break-all;
-            overflow-wrap: break-word;
-            text-overflow: ellipsis;
-
-        }
-
-        .transaction-time {
-            font-size: 11px;
-            color: #adb5bd;
-        }
-
-        .transaction-balance {
-            font-size: 12px;
-            color: #495057;
-            font-weight: 500;
-            text-align: right;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 20px;
-            color: #6c757d;
-            font-style: italic;
-        }
-
-        .refresh-btn {
-            width: auto;
-            padding: 8px 16px;
-            font-size: 12px;
-            margin: 0;
-        }
-
-        .balance-summary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            text-align: center;
-            animation: fadeInUp 0.5s ease-out;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .balance-summary h4 {
-            margin-bottom: 15px;
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .balance-cards {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .balance-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            backdrop-filter: blur(10px);
-        }
-
-        .balance-card h5 {
-            font-size: 12px;
-            margin-bottom: 8px;
-            opacity: 0.8;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .balance-amount {
-            font-size: 18px;
-            font-weight: 900;
-            line-height: 1.2;
-        }
-
-        .total-balance {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            backdrop-filter: blur(10px);
-        }
-
-        .total-balance h5 {
-            font-size: 14px;
-            margin-bottom: 8px;
-            opacity: 0.9;
-        }
-
-        .total-amount {
-            font-size: 24px;
-            font-weight: 900;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        ::-webkit-scrollbar-corner {
+            background: #c0c0c0;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📱 SMS Notification</h1>
-            <p>Ứng dụng thông báo SMS ngân hàng</p>
-        </div>
-
-        <div id="status" class="status disconnected">
-            🔴 Chưa kết nối
-        </div>
-
-        <div class="section">
-            <h3>🔑 API Keys & Kết nối</h3>
-            <div
-                style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; color: #1565c0;">
-                📁 Config được lưu tại: <span id="configPath" style="font-weight: bold;">Đang tải...</span>
-            </div>
-
-            <div class="form-group">
-                <label for="pushbulletApi">🔗 Pushbullet API Key:</label>
-                <input type="password" id="pushbulletApi" placeholder="Nhập Pushbullet API key...">
-                <small style="color: #6c757d; font-size: 11px;">
-                    Lấy từ: <a href="https://www.pushbullet.com/#settings/account"
-                        target="_blank">https://www.pushbullet.com/#settings/account</a>
-                </small>
-            </div>
-
-            <div class="form-group">
-                <label for="supabaseUrl">🗄️ Supabase URL:</label>
-                <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
-            </div>
-
-            <div class="form-group">
-                <label for="supabaseKey">🔐 Supabase Key:</label>
-                <input type="password" id="supabaseKey" placeholder="Nhập Supabase anon key...">
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                <button class="btn btn-warning" onclick="testPushbulletConnection()">
-                    🧪 Test Pushbullet
-                </button>
-                <button class="btn btn-warning" onclick="testSupabaseConnection()">
-                    🧪 Test Supabase
-                </button>
+        <div class="title-bar">
+            <span>SMS Notification - Configuration Panel</span>
+            <div class="window-controls">
+                <button class="window-control-btn" onclick="closeWindow()">×</button>
             </div>
         </div>
 
-        <div class="section">
-            <h3>⚙️ Cấu hình hiển thị</h3>
-            <div class="config-row">
-                <label>Vị trí popup:</label>
-                <select id="position">
-                    <option value="top-right">Góc trên phải</option>
-                    <option value="top-left">Góc trên trái</option>
-                    <option value="bottom-right">Góc dưới phải</option>
-                    <option value="bottom-left">Góc dưới trái</option>
-                </select>
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="soundEnabled" checked>
-                <label for="soundEnabled">Bật âm thanh</label>
-            </div>
-            <div class="checkbox-group">
-                <input type="checkbox" id="supabaseEnabled">
-                <label for="supabaseEnabled">💾 Lưu dữ liệu lên Supabase</label>
-            </div>
-            <div class="config-row">
-                <label>Số popup tối đa:</label>
-                <input type="number" id="maxPopups" value="4" min="1" max="8">
-            </div>
-            <div class="config-row">
-                <label>Tự đóng sau (giây):</label>
-                <input type="number" id="autoCloseDelay" value="8" min="0" max="30">
-            </div>
-            <button class="btn btn-primary btn-full" onclick="updateConfig()">
-                💾 Lưu cấu hình
-            </button>
-        </div>
-
-        <div class="section">
-            <h3>🧪 Test Popup</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                <button class="btn btn-success" onclick="testViettinSMS()">
-                    📱 VietinBank
-                </button>
-                <button class="btn btn-success" onclick="testVietcombankSMS()">
-                    📱 Vietcombank
-                </button>
-                <button class="btn btn-warning" onclick="testMultiplePopups()">
-                    🔄 Test 3 popup
-                </button>
-                <button class="btn btn-danger" onclick="closeAllPopups()">
-                    ❌ Đóng tất cả
-                </button>
-            </div>
-            <button class="btn btn-primary btn-full" onclick="testCustomPopup()">
-                🎯 Test popup tùy chỉnh
-            </button>
-        </div>
-
-        <div class="section">
-            <h3>📊 Lịch sử giao dịch</h3>
-
-            <!-- Balance Summary -->
-            <div id="balanceSummary" class="balance-summary" style="display: none;">
-                <h4>💰 Tổng số dư hiện tại</h4>
-                <div class="balance-cards">
-                    <div class="balance-card">
-                        <h5>VietinBank</h5>
-                        <div class="balance-amount" id="vietinBalance">0 VND</div>
-                    </div>
-                    <div class="balance-card">
-                        <h5>Vietcombank</h5>
-                        <div class="balance-amount" id="vietcombankBalance">0 VND</div>
-                    </div>
-                    <div class="balance-card">
-                        <h5>Khác</h5>
-                        <div class="balance-amount" id="otherBalance">0 VND</div>
+        <div class="menu-bar">
+            <div class="menu-left">
+                <div class="menu-item" onclick="toggleDropdown('toolsMenu')">
+                    Tools
+                    <div id="toolsMenu" class="dropdown-menu">
+                        <div class="dropdown-item" onclick="startServices()">Start Services</div>
+                        <div class="dropdown-item" onclick="stopServices()">Stop Services</div>
+                        <div class="dropdown-item" onclick="updateConfig()">Save Configuration</div>
+                        <div class="dropdown-item" onclick="loadConfig()">Refresh Configuration</div>
                     </div>
                 </div>
-                <div class="total-balance">
-                    <h5>Tổng cộng</h5>
-                    <div class="total-amount" id="totalBalance">0 VND</div>
+                <div class="menu-item" onclick="toggleDropdown('testMenu')">
+                    Test
+                    <div id="testMenu" class="dropdown-menu">
+                        <div class="dropdown-item" onclick="testPushbulletConnection()">Test Pushbullet</div>
+                        <div class="dropdown-item" onclick="testSupabaseConnection()">Test Supabase</div>
+                        <div class="dropdown-item" onclick="testVietcombankSMS()">Test Vietcombank</div>
+                        <div class="dropdown-item" onclick="testViettinSMS()">Test VietinBank</div>
+                        <div class="dropdown-item" onclick="testMultiplePopups()">Test Multi Popup</div>
+                        <div class="dropdown-item" onclick="closeAllPopups()">Close All Popups</div>
+                        <div class="dropdown-item" onclick="testCustomPopup()">Custom Popup Test</div>
+                    </div>
+                </div>
+                <div class="menu-item" onclick="toggleDropdown('historyMenu')">
+                    History
+                    <div id="historyMenu" class="dropdown-menu">
+                        <div class="dropdown-item" onclick="loadTransactionHistory()">Refresh History</div>
+                        <div class="dropdown-item" onclick="clearTransactionHistory()">Clear Display</div>
+                    </div>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <span class="status-dot disconnected" id="statusDot"></span>
+                <span id="statusText">Disconnected</span>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="group-box">
+                <div class="group-box-title">Connection Settings</div>
+                <div class="group-box-content">
+                    <div
+                        style="background: #ffffff; padding: 6px; margin-bottom: 8px; border: 1px inset #c0c0c0; font-size: 10px;">
+                        Config Path: <span id="configPath" style="font-weight: bold;">Loading...</span>
+                    </div>
+
+                    <div class="config-row">
+                        <label for="pushbulletApi">Pushbullet API Key:</label>
+                        <input type="text" id="pushbulletApi" placeholder="Enter Pushbullet API key">
+                    </div>
+
+                    <div class="config-row">
+                        <label for="supabaseUrl">Supabase URL:</label>
+                        <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
+                    </div>
+
+                    <div class="config-row">
+                        <label for="supabaseKey">Supabase Key:</label>
+                        <input type="text" id="supabaseKey" placeholder="Enter Supabase anon key">
+                    </div>
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <span style="font-size: 14px; color: #6c757d;">50 giao dịch gần nhất</span>
-                <button class="btn btn-primary refresh-btn" onclick="loadTransactions()">
-                    🔄 Tải lại
-                </button>
-            </div>
-            <div id="transactionList" class="transaction-list">
-                <div class="loading">Đang tải dữ liệu...</div>
-            </div>
-        </div>
+            <div class="group-box">
+                <div class="group-box-title">Display Settings</div>
+                <div class="group-box-content">
+                    <div class="config-layout">
+                        <div class="config-column">
+                            <div class="config-column-title">Popup Configuration</div>
 
-        <div id="message" class="message"></div>
+                            <div class="config-row">
+                                <label>Position:</label>
+                                <select id="position">
+                                    <option value="top-right">Top Right</option>
+                                    <option value="top-left">Top Left</option>
+                                    <option value="bottom-right">Bottom Right</option>
+                                    <option value="bottom-left">Bottom Left</option>
+                                </select>
+                            </div>
+
+                            <div class="config-row">
+                                <label>Max Popups:</label>
+                                <input type="number" id="maxPopups" value="4" min="1" max="8">
+                            </div>
+
+                            <div class="config-row">
+                                <label>Auto Close (sec):</label>
+                                <input type="number" id="autoCloseDelay" value="8" min="0" max="30">
+                            </div>
+                        </div>
+
+                        <div class="config-column">
+                            <div class="config-column-title">Options</div>
+
+                            <div class="config-row">
+                                <label>
+                                    <input type="checkbox" id="soundEnabled">
+                                    Enable Sound
+                                </label>
+                            </div>
+
+                            <div class="config-row">
+                                <label>
+                                    <input type="checkbox" id="supabaseEnabled">
+                                    Save to Supabase
+                                </label>
+                            </div>
+
+                            <div class="config-row">
+                                <label>
+                                    <input type="checkbox" id="hideTransactionDetails">
+                                    Hide Details
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="group-box">
+                <div class="group-box-title">Transaction History</div>
+                <div class="group-box-content">
+                    <!-- Balance Summary Table -->
+                    <div id="balanceSummary" class="balance-summary" style="display: none;">
+                        <table class="balance-table">
+                            <tr>
+                                <td>Vietcombank:</td>
+                                <td id="vietcombankBalance" class="balance-amount">0 VND</td>
+                            </tr>
+                            <tr>
+                                <td>VietinBank:</td>
+                                <td id="vietinBalance" class="balance-amount">0 VND</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td><strong>Tổng tiền:</strong></td>
+                                <td id="totalBalance" class="balance-amount total-amount"><strong>0 VND</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div id="transactionHistory" class="transaction-history">
+                        <div class="loading">Loading transaction history...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="message" class="message"></div>
+        </div>
     </div>
 
     <script src="scripts/supabase-js@2.js"></script>
@@ -529,8 +599,13 @@
                     await loadTransactions();
                 } else {
                     // Show message if Supabase is not configured
-                    const listEl = document.getElementById('transactionList');
-                    listEl.innerHTML = '<div class="no-data">⚙️ Cần cấu hình Supabase để xem lịch sử giao dịch</div>';
+                    const listEl = document.getElementById('transactionHistory');
+                    if (listEl) {
+                        listEl.innerHTML = '<div class="no-data">⚙️ Cần cấu hình Supabase để xem lịch sử giao dịch</div>';
+                    }
+                    // Hide balance summary when no Supabase config
+                    const balanceSummaryEl = document.getElementById('balanceSummary');
+                    if (balanceSummaryEl) balanceSummaryEl.style.display = 'none';
                 }
             } catch (error) {
                 showMessage('❌ Lỗi khởi tạo ứng dụng: ' + error.message, 'error');
@@ -540,28 +615,44 @@
         async function loadConfigPath() {
             try {
                 const configPath = await ipcRenderer.invoke('get-config-path');
-                document.getElementById('configPath').textContent = configPath;
+                const configPathEl = document.getElementById('configPath');
+                if (configPathEl) {
+                    configPathEl.textContent = configPath;
+                }
             } catch (error) {
-                document.getElementById('configPath').textContent = 'Lỗi tải đường dẫn';
+                const configPathEl = document.getElementById('configPath');
+                if (configPathEl) {
+                    configPathEl.textContent = 'Lỗi tải đường dẫn';
+                }
             }
         }
-
-
 
         async function loadConfig() {
             currentConfig = await ipcRenderer.invoke('get-config');
 
-            // Load API keys
-            document.getElementById('pushbulletApi').value = currentConfig.pushbullet?.apiKey || '';
-            document.getElementById('supabaseUrl').value = currentConfig.supabase?.url || '';
-            document.getElementById('supabaseKey').value = currentConfig.supabase?.key || '';
+            // Load API keys - with null checks
+            const pushbulletApiEl = document.getElementById('pushbulletApi');
+            const supabaseUrlEl = document.getElementById('supabaseUrl');
+            const supabaseKeyEl = document.getElementById('supabaseKey');
 
-            // Load display settings
-            document.getElementById('position').value = currentConfig.popup?.position || 'top-right';
-            document.getElementById('soundEnabled').checked = currentConfig.popup?.soundEnabled !== false;
-            document.getElementById('supabaseEnabled').checked = currentConfig.supabase?.enabled === true;
-            document.getElementById('maxPopups').value = currentConfig.popup?.maxPopups || 4;
-            document.getElementById('autoCloseDelay').value = (currentConfig.popup?.autoCloseDelay || 8000) / 1000;
+            if (pushbulletApiEl) pushbulletApiEl.value = currentConfig.pushbullet?.apiKey || '';
+            if (supabaseUrlEl) supabaseUrlEl.value = currentConfig.supabase?.url || '';
+            if (supabaseKeyEl) supabaseKeyEl.value = currentConfig.supabase?.key || '';
+
+            // Load display settings - with null checks
+            const positionEl = document.getElementById('position');
+            const soundEnabledEl = document.getElementById('soundEnabled');
+            const supabaseEnabledEl = document.getElementById('supabaseEnabled');
+            const maxPopupsEl = document.getElementById('maxPopups');
+            const autoCloseDelayEl = document.getElementById('autoCloseDelay');
+            const hideTransactionDetailsEl = document.getElementById('hideTransactionDetails');
+
+            if (positionEl) positionEl.value = currentConfig.popup?.position || 'top-right';
+            if (soundEnabledEl) soundEnabledEl.checked = currentConfig.popup?.soundEnabled !== false;
+            if (supabaseEnabledEl) supabaseEnabledEl.checked = currentConfig.supabase?.enabled === true;
+            if (maxPopupsEl) maxPopupsEl.value = currentConfig.popup?.maxPopups || 4;
+            if (autoCloseDelayEl) autoCloseDelayEl.value = (currentConfig.popup?.autoCloseDelay || 8000) / 1000;
+            if (hideTransactionDetailsEl) hideTransactionDetailsEl.checked = currentConfig.popup?.hideTransactionDetails === true;
 
             // Initialize Supabase client
             initializeSupabase();
@@ -586,53 +677,51 @@
 
         async function updateStatus() {
             const status = await ipcRenderer.invoke('get-status');
-            const statusEl = document.getElementById('status');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
 
-            let statusText = '';
-            let statusClass = 'status ';
-
-            if (status.connected) {
-                statusClass += 'connected';
-                statusText = '🟢 Pushbullet: Đã kết nối';
-            } else {
-                statusClass += 'disconnected';
-                statusText = '🔴 Pushbullet: Chưa kết nối';
-            }
-
-            // Add Supabase status
-            if (status.config?.supabaseEnabled) {
-                if (status.config?.supabaseConfigured) {
-                    statusText += ' | 💾 Supabase: Bật';
+            if (statusDot && statusText) {
+                if (status.connected) {
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'Connected';
                 } else {
-                    statusText += ' | ⚠️ Supabase: Chưa cấu hình';
+                    statusDot.className = 'status-dot disconnected';
+                    statusText.textContent = 'Disconnected';
                 }
-            } else {
-                statusText += ' | 💾 Supabase: Tắt';
             }
-
-            statusEl.className = statusClass;
-            statusEl.textContent = statusText;
         }
 
         async function updateConfig() {
             try {
                 showMessage('🔄 Đang lưu cấu hình...', 'info');
 
-                const autoCloseSeconds = Math.max(0, Math.min(30, parseInt(document.getElementById('autoCloseDelay').value) || 8));
+                // Get form values with null checks
+                const autoCloseDelayEl = document.getElementById('autoCloseDelay');
+                const pushbulletApiEl = document.getElementById('pushbulletApi');
+                const positionEl = document.getElementById('position');
+                const soundEnabledEl = document.getElementById('soundEnabled');
+                const maxPopupsEl = document.getElementById('maxPopups');
+                const hideTransactionDetailsEl = document.getElementById('hideTransactionDetails');
+                const supabaseUrlEl = document.getElementById('supabaseUrl');
+                const supabaseKeyEl = document.getElementById('supabaseKey');
+                const supabaseEnabledEl = document.getElementById('supabaseEnabled');
+
+                const autoCloseSeconds = Math.max(0, Math.min(30, parseInt(autoCloseDelayEl?.value) || 8));
                 const newConfig = {
                     pushbullet: {
-                        apiKey: document.getElementById('pushbulletApi').value.trim()
+                        apiKey: pushbulletApiEl?.value.trim() || ''
                     },
                     popup: {
-                        position: document.getElementById('position').value,
-                        soundEnabled: document.getElementById('soundEnabled').checked,
-                        maxPopups: Math.max(1, Math.min(8, parseInt(document.getElementById('maxPopups').value) || 4)),
-                        autoCloseDelay: autoCloseSeconds * 1000
+                        position: positionEl?.value || 'top-right',
+                        soundEnabled: soundEnabledEl?.checked !== false,
+                        maxPopups: Math.max(1, Math.min(8, parseInt(maxPopupsEl?.value) || 4)),
+                        autoCloseDelay: autoCloseSeconds * 1000,
+                        hideTransactionDetails: hideTransactionDetailsEl?.checked === true
                     },
                     supabase: {
-                        url: document.getElementById('supabaseUrl').value.trim(),
-                        key: document.getElementById('supabaseKey').value.trim(),
-                        enabled: document.getElementById('supabaseEnabled').checked
+                        url: supabaseUrlEl?.value.trim() || '',
+                        key: supabaseKeyEl?.value.trim() || '',
+                        enabled: supabaseEnabledEl?.checked === true
                     }
                 };
 
@@ -642,7 +731,7 @@
                 if (saved) {
                     currentConfig = { ...currentConfig, ...newConfig };
                     const supabaseStatus = newConfig.supabase.enabled ? 'BẬT (tự động lưu giao dịch)' : 'TẮT (chỉ xem dữ liệu có sẵn)';
-                    showMessage(`✅ Cấu hình đã được lưu thành công tại C:\\tinhansms\\config.txt!\n💾 Supabase: ${supabaseStatus}`, 'success');
+                    showMessage(`✅ Cấu hình đã được lưu thành công!\n💾 Supabase: ${supabaseStatus}`, 'success');
 
                     // Reinitialize Supabase client with new settings
                     initializeSupabase();
@@ -660,9 +749,9 @@
                 showMessage('❌ Lỗi: ' + error.message, 'error');
             }
         }
-
         async function testPushbulletConnection() {
-            const apiKey = document.getElementById('pushbulletApi').value.trim();
+            const pushbulletApiEl = document.getElementById('pushbulletApi');
+            const apiKey = pushbulletApiEl?.value.trim() || '';
             if (!apiKey) {
                 showMessage('❌ Vui lòng nhập Pushbullet API key', 'error');
                 return;
@@ -683,8 +772,10 @@
         }
 
         async function testSupabaseConnection() {
-            const url = document.getElementById('supabaseUrl').value.trim();
-            const key = document.getElementById('supabaseKey').value.trim();
+            const supabaseUrlEl = document.getElementById('supabaseUrl');
+            const supabaseKeyEl = document.getElementById('supabaseKey');
+            const url = supabaseUrlEl?.value.trim() || '';
+            const key = supabaseKeyEl?.value.trim() || '';
 
             if (!url || !key) {
                 showMessage('❌ Vui lòng nhập đầy đủ Supabase URL và Key', 'error');
@@ -752,19 +843,24 @@
             }
         }
 
-
-
         async function closeAllPopups() {
             await ipcRenderer.invoke('close-all-popups');
             showMessage('🗑️ Đã đóng tất cả popup', 'info');
         }
 
         async function loadTransactions() {
-            const listEl = document.getElementById('transactionList');
+            const listEl = document.getElementById('transactionHistory');
+
+            if (!listEl) {
+                console.warn('Transaction history element not found');
+                return;
+            }
 
             if (!supabaseClient) {
                 listEl.innerHTML = '<div class="no-data">⚠️ Supabase chưa được cấu hình</div>';
-                document.getElementById('balanceSummary').style.display = 'none';
+                // Hide balance summary when no Supabase client
+                const balanceSummaryEl = document.getElementById('balanceSummary');
+                if (balanceSummaryEl) balanceSummaryEl.style.display = 'none';
                 return;
             }
 
@@ -788,7 +884,9 @@
                         ? '📭 Chưa có giao dịch nào (Supabase đang bật - giao dịch mới sẽ được lưu tự động)'
                         : '📭 Chưa có giao dịch nào (Supabase đã tắt - chỉ xem dữ liệu có sẵn)';
                     listEl.innerHTML = `<div class="no-data">${statusMessage}</div>`;
-                    document.getElementById('balanceSummary').style.display = 'none';
+                    // Hide balance summary when no transactions
+                    const balanceSummaryEl = document.getElementById('balanceSummary');
+                    if (balanceSummaryEl) balanceSummaryEl.style.display = 'none';
                     return;
                 }
 
@@ -798,7 +896,7 @@
                 const statusMessage = currentConfig.supabase?.enabled
                     ? `✅ Đã tải ${data.length} giao dịch (Supabase: BẬT - tự động lưu)`
                     : `✅ Đã tải ${data.length} giao dịch (Supabase: TẮT - chỉ xem)`;
-                showMessage(statusMessage, 'success');
+                // showMessage(statusMessage, 'success');
 
             } catch (error) {
                 console.error('Error loading transactions:', error);
@@ -816,51 +914,67 @@
                 }
 
                 listEl.innerHTML = `<div class="no-data">❌ ${errorMessage}</div>`;
-                document.getElementById('balanceSummary').style.display = 'none';
+                // Hide balance summary when error
+                const balanceSummaryEl = document.getElementById('balanceSummary');
+                if (balanceSummaryEl) balanceSummaryEl.style.display = 'none';
                 showMessage(`❌ Lỗi khi tải dữ liệu từ Supabase: ${errorMessage}`, 'error');
             }
         }
 
         function renderTransactions(transactions) {
-            const listEl = document.getElementById('transactionList');
+            const listEl = document.getElementById('transactionHistory');
 
             if (!transactions || transactions.length === 0) {
                 listEl.innerHTML = '<div class="no-data">📭 Chưa có giao dịch nào</div>';
+                // Hide balance summary when no transactions
+                const balanceSummaryEl = document.getElementById('balanceSummary');
+                if (balanceSummaryEl) balanceSummaryEl.style.display = 'none';
                 return;
             }
 
-            const html = transactions.map(transaction => {
+            const tableRows = transactions.map(transaction => {
                 const isIncoming = transaction.transaction_type === 'incoming';
                 const amountClass = isIncoming ? 'incoming' : 'outgoing';
                 const amountSign = isIncoming ? '+' : '-';
 
                 return `
-                    <div class="transaction-item">
-                        <div class="transaction-info">
-                            <div class="transaction-bank">${transaction.bank || 'Unknown'}</div>
-                            <div class="transaction-amount ${amountClass}">
-                                ${amountSign}${formatCurrency(transaction.amount)} VND
-                            </div>
-                            <div class="transaction-description">
-                                ${transaction.description || 'Không có mô tả'}
-                            </div>
-                            <div class="transaction-time">
-                                ${formatDateTime(transaction.received_at)}
-                            </div>
-                        </div>
-                        <div class="transaction-balance">
-                            SD: ${formatCurrency(transaction.balance)} VND
-                        </div>
-                    </div>
+                    <tr>
+                        <td class="transaction-time">${formatDateTime(transaction.received_at)}</td>
+                        <td class="transaction-bank">${transaction.bank || 'Unknown'}</td>
+                        <td class="transaction-amount ${amountClass}">
+                            ${amountSign}${formatCurrency(transaction.amount)}
+                        </td>
+                        <td class="transaction-balance">${formatCurrency(transaction.balance)}</td>
+                    </tr>
                 `;
             }).join('');
 
-            listEl.innerHTML = html;
+            const tableHtml = `
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Thời gian</th>
+                            <th>Tên Bank</th>
+                            <th>Số tiền</th>
+                            <th>SD cuối</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+
+            listEl.innerHTML = tableHtml;
         }
 
         function calculateBalanceSummary(transactions) {
+            const balanceSummaryEl = document.getElementById('balanceSummary');
+
             if (!transactions || transactions.length === 0) {
-                document.getElementById('balanceSummary').style.display = 'none';
+                if (balanceSummaryEl) balanceSummaryEl.style.display = 'none';
+                // Update tray menu with zero balances
+                ipcRenderer.invoke('update-balance', 0, 0);
                 return;
             }
 
@@ -869,7 +983,7 @@
                 new Date(b.received_at) - new Date(a.received_at)
             );
 
-            // Get latest balance for each bank
+            // Get latest balance for each bank (record cuối cùng của ngân hàng)
             const latestBalances = {};
 
             sortedTransactions.forEach(transaction => {
@@ -881,37 +995,37 @@
             });
 
             // Get balances for main banks
-            const vietinBalance = latestBalances['vietinbank'] || 0;
             const vietcombankBalance = latestBalances['vietcombank'] || 0;
+            const vietinBalance = latestBalances['vietinbank'] || 0;
 
-            // Calculate other banks balance
-            let otherBalance = 0;
-            Object.keys(latestBalances).forEach(bank => {
-                if (bank !== 'vietinbank' && bank !== 'vietcombank') {
-                    otherBalance += latestBalances[bank];
-                }
-            });
+            // Calculate total
+            const totalBalance = vietcombankBalance + vietinBalance;
 
-            const totalBalance = vietinBalance + vietcombankBalance + otherBalance;
+            // Update UI elements
+            const vietcombankEl = document.getElementById('vietcombankBalance');
+            const vietinEl = document.getElementById('vietinBalance');
+            const totalEl = document.getElementById('totalBalance');
 
-            // Update UI
-            document.getElementById('vietinBalance').textContent = formatCurrency(vietinBalance) + ' VND';
-            document.getElementById('vietcombankBalance').textContent = formatCurrency(vietcombankBalance) + ' VND';
-            document.getElementById('otherBalance').textContent = formatCurrency(otherBalance) + ' VND';
-            document.getElementById('totalBalance').textContent = formatCurrency(totalBalance) + ' VND';
+            if (vietcombankEl) vietcombankEl.textContent = formatCurrency(vietcombankBalance) + ' VND';
+            if (vietinEl) vietinEl.textContent = formatCurrency(vietinBalance) + ' VND';
+            if (totalEl) totalEl.textContent = formatCurrency(totalBalance) + ' VND';
 
             // Show summary if we have any balance data
-            if (Object.keys(latestBalances).length > 0) {
-                document.getElementById('balanceSummary').style.display = 'block';
-            } else {
-                document.getElementById('balanceSummary').style.display = 'none';
+            if (balanceSummaryEl) {
+                if (vietcombankBalance > 0 || vietinBalance > 0) {
+                    balanceSummaryEl.style.display = 'block';
+                } else {
+                    balanceSummaryEl.style.display = 'none';
+                }
             }
+
+            // Update tray menu with balance data
+            ipcRenderer.invoke('update-balance', vietcombankBalance, vietinBalance);
 
             // Log for debugging
             console.log('Balance Summary:', {
-                vietinbank: vietinBalance,
                 vietcombank: vietcombankBalance,
-                other: otherBalance,
+                vietinbank: vietinBalance,
                 total: totalBalance,
                 latestBalances: latestBalances
             });
@@ -943,13 +1057,18 @@
 
         function showMessage(message, type) {
             const messageEl = document.getElementById('message');
-            messageEl.textContent = message;
-            messageEl.className = `message ${type}`;
-            messageEl.style.display = 'block';
+            if (messageEl) {
+                messageEl.textContent = message;
+                messageEl.className = `message ${type}`;
+                messageEl.style.display = 'block';
 
-            setTimeout(() => {
-                messageEl.style.display = 'none';
-            }, 3000);
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 3000);
+            } else {
+                // Fallback to console if message element doesn't exist
+                console.log(`${type.toUpperCase()}: ${message}`);
+            }
         }
 
         // Listen for SMS received
@@ -985,6 +1104,84 @@
 
         // Update status periodically
         setInterval(updateStatus, 5000);
+
+        // Additional functions for Office-style interface
+        async function startServices() {
+            try {
+                await ipcRenderer.invoke('start-services');
+                showMessage('Services started', 'success');
+                await updateStatus();
+            } catch (error) {
+                showMessage('Failed to start services: ' + error.message, 'error');
+            }
+        }
+
+        async function stopServices() {
+            try {
+                await ipcRenderer.invoke('stop-services');
+                showMessage('Services stopped', 'info');
+                await updateStatus();
+            } catch (error) {
+                showMessage('Failed to stop services: ' + error.message, 'error');
+            }
+        }
+
+        function clearTransactionHistory() {
+            const historyEl = document.getElementById('transactionHistory');
+            if (historyEl) {
+                historyEl.innerHTML = '<div class="no-data">Transaction history cleared</div>';
+            }
+        }
+
+        // Alias for loadTransactions to match button onclick
+        function loadTransactionHistory() {
+            loadTransactions();
+        }
+
+        // Window control functions - Modified to hide window instead of closing app
+        function closeWindow() {
+            ipcRenderer.send('hide-window');
+        }
+
+        // Dropdown menu functionality
+        function toggleDropdown(menuId) {
+            // Close all other dropdowns first
+            const allDropdowns = document.querySelectorAll('.dropdown-menu');
+            allDropdowns.forEach(dropdown => {
+                if (dropdown.id !== menuId) {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            // Toggle the clicked dropdown
+            const dropdown = document.getElementById(menuId);
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.menu-item')) {
+                const allDropdowns = document.querySelectorAll('.dropdown-menu');
+                allDropdowns.forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+            }
+        });
+
+        // Prevent dropdown from closing when clicking on dropdown items
+        document.addEventListener('click', function (event) {
+            if (event.target.classList.contains('dropdown-item')) {
+                // Close the dropdown after clicking an item
+                setTimeout(() => {
+                    const allDropdowns = document.querySelectorAll('.dropdown-menu');
+                    allDropdowns.forEach(dropdown => {
+                        dropdown.classList.remove('show');
+                    });
+                }, 100);
+            }
+        });
     </script>
 </body>
 

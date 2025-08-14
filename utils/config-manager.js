@@ -25,6 +25,8 @@ class ConfigManager {
 
             "soundEnabled": true,
 
+            "hideTransactionDetails": false,
+
             "supabaseEnabled": false
 
 
@@ -140,7 +142,8 @@ class ConfigManager {
                 position: flatConfig.position || 'top-right',
                 soundEnabled: flatConfig.soundEnabled !== false,
                 maxPopups: flatConfig.maxPopups || 4,
-                autoCloseDelay: flatConfig.autoCloseDelay || 8000
+                autoCloseDelay: flatConfig.autoCloseDelay || 8000,
+                hideTransactionDetails: flatConfig.hideTransactionDetails === true
             },
             supabase: {
                 url: flatConfig.supabase_url || '',
@@ -168,6 +171,7 @@ class ConfigManager {
             autoCloseDelay: appConfig.popup?.autoCloseDelay || 8000,
             position: appConfig.popup?.position || 'top-right',
             soundEnabled: appConfig.popup?.soundEnabled !== false,
+            hideTransactionDetails: appConfig.popup?.hideTransactionDetails === true,
             supabaseEnabled: appConfig.supabase?.enabled === true
         };
     }

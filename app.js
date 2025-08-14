@@ -1,3 +1,4 @@
+
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, screen } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
@@ -13,6 +14,7 @@ const CONSTANTS = require('./constants');
 class SMSNotificationApp {
     constructor() {
         this.mainWindow = null;
+        this.mainWindowHidden = false;
         this.popupWindows = [];
         this.tray = null;
         this.pushbulletListener = null;
@@ -22,6 +24,13 @@ class SMSNotificationApp {
         this.isConnected = false;
         this.isShuttingDown = false;
         
+        // Balance data for tray menu
+        this.balanceData = {
+            vietcombank: 0,
+            vietinbank: 0,
+            total: 0
+        };
+
         // Initialize app asynchronously
         this.initializeApp().catch(error => {
             console.error('Failed to initialize app:', error);
@@ -33,15 +42,15 @@ class SMSNotificationApp {
             // Run setup to ensure config directory exists
             const setupConfig = require('./scripts/setup-config');
             const setupSuccess = setupConfig();
-            
+
             if (!setupSuccess) {
                 console.warn('⚠️ Config setup had issues, but continuing...');
             }
-            
+
             // Load config from C:\tinhansms\config.txt
             const flatConfig = await this.configManager.ensureConfigExists();
             this.config = this.configManager.convertToAppConfig(flatConfig);
-            
+
             console.log('✅ Config loaded from:', this.configManager.getConfigPath());
             console.log('📋 Current config structure:');
             console.log('  - Pushbullet API:', this.config.pushbullet?.apiKey ? '***' + this.config.pushbullet.apiKey.slice(-4) : 'Not set');
@@ -53,7 +62,7 @@ class SMSNotificationApp {
             // Use default config if loading fails
             this.config = this.configManager.convertToAppConfig(this.configManager.defaultConfig);
         }
-        
+
         this.setupApp();
     }
 
@@ -95,7 +104,7 @@ class SMSNotificationApp {
 
             this.createTray();
             this.setupIPC();
-            
+
             if (this.config.pushbullet.enabled && this.config.pushbullet.apiKey) {
                 this.startServices();
             }
@@ -134,8 +143,9 @@ class SMSNotificationApp {
         this.tray = new Tray(trayIcon);
         this.tray.setToolTip('SMS Notification');
         this.updateTrayMenu();
-        
+
         this.tray.on('double-click', () => {
+            console.log('Tray double-clicked');
             this.showMainWindow();
         });
     }
@@ -144,7 +154,7 @@ class SMSNotificationApp {
         // Determine icon file based on platform
         const isWindows = process.platform === 'win32';
         const iconFile = isWindows ? CONSTANTS.PATHS.ICON_ICO : CONSTANTS.PATHS.ICON;
-        
+
         // Try multiple icon paths for different environments
         const iconPaths = [
             // Development path
@@ -160,7 +170,7 @@ class SMSNotificationApp {
             path.join(process.resourcesPath, 'assets', 'icon.ico'),
             path.join(process.resourcesPath, 'assets', 'icon.png')
         ];
-        
+
         for (const iconPath of iconPaths) {
             try {
                 if (fsSync.existsSync(iconPath)) {
@@ -174,9 +184,9 @@ class SMSNotificationApp {
                 console.warn(`Failed to load icon from ${iconPath}:`, error.message);
             }
         }
-        
+
         console.warn('Using fallback icon - no custom icon found');
-        
+
         // Create a simple text-based icon as fallback
         return this.createTextIcon('SMS');
     }
@@ -184,7 +194,7 @@ class SMSNotificationApp {
     createTextIcon(text) {
         // Create a simple 16x16 icon with text
         const canvas = document.createElement ? null : require('canvas');
-        
+
         if (!canvas) {
             // Fallback to a simple colored square icon
             return nativeImage.createFromBuffer(Buffer.from([
@@ -207,23 +217,23 @@ class SMSNotificationApp {
                 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
             ]));
         }
-        
+
         // If canvas is available, create a proper text icon
         try {
             const { createCanvas } = canvas;
             const canvasElement = createCanvas(16, 16);
             const ctx = canvasElement.getContext('2d');
-            
+
             // Fill background
             ctx.fillStyle = '#4A90E2';
             ctx.fillRect(0, 0, 16, 16);
-            
+
             // Draw text
             ctx.fillStyle = '#FFFFFF';
             ctx.font = '8px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(text, 8, 11);
-            
+
             return nativeImage.createFromBuffer(canvasElement.toBuffer());
         } catch (error) {
             console.warn('Failed to create text icon:', error.message);
@@ -253,21 +263,23 @@ class SMSNotificationApp {
                     label: 'Open',
                     click: () => {
                         if (!this.isShuttingDown) {
+                            console.log('Tray menu: Open clicked');
                             this.showMainWindow();
                         }
                     }
                 },
+                { type: 'separator' },
                 {
-                    label: this.isConnected ? 'Stop' : 'Start',
-                    click: () => {
-                        if (!this.isShuttingDown) {
-                            if (this.isConnected) {
-                                this.stopServices();
-                            } else {
-                                this.startServices();
-                            }
-                        }
-                    }
+                    label: `Vietcombank: ${this.formatCurrency(this.balanceData.vietcombank)} VND`,
+                    enabled: false
+                },
+                {
+                    label: `VietinBank: ${this.formatCurrency(this.balanceData.vietinbank)} VND`,
+                    enabled: false
+                },
+                {
+                    label: `Tổng tiền: ${this.formatCurrency(this.balanceData.total)} VND`,
+                    enabled: false
                 },
                 { type: 'separator' },
                 {
@@ -292,11 +304,37 @@ class SMSNotificationApp {
         }
     }
 
+    formatCurrency(amount) {
+        if (!amount) return '0';
+        return new Intl.NumberFormat('vi-VN').format(amount);
+    }
+
+    updateBalanceData(vietcombankBalance, vietinBalance) {
+        this.balanceData.vietcombank = vietcombankBalance || 0;
+        this.balanceData.vietinbank = vietinBalance || 0;
+        this.balanceData.total = this.balanceData.vietcombank + this.balanceData.vietinbank;
+        
+        // Update tray menu with new balance data
+        this.updateTrayMenu();
+    }
+
     showMainWindow() {
+        console.log('Show main window requested');
+        console.log('Window hidden state:', this.mainWindowHidden);
+
+        // If window exists and is not destroyed
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            console.log('Main window exists, showing and focusing');
+            // Show the window and update state
+            this.mainWindow.show();
             this.mainWindow.focus();
+            this.mainWindowHidden = false;
+            // Send signal to reload transactions when window opens
+            this.mainWindow.webContents.send('window-opened');
             return;
         }
+
+        console.log('Creating new main window');
 
         const { WIDTH, HEIGHT } = CONSTANTS.MAIN_WINDOW;
         this.mainWindow = new BrowserWindow({
@@ -309,49 +347,61 @@ class SMSNotificationApp {
             },
             icon: path.join(__dirname, 'assets', 'icon.png'),
             title: 'SMS Notification',
-            show: false
+            show: false,
+            frame: false,
+            titleBarStyle: 'hidden',
+            autoHideMenuBar: true
         });
 
         this.mainWindow.loadFile('index.html');
 
         this.mainWindow.once('ready-to-show', () => {
             this.mainWindow.show();
+            this.mainWindowHidden = false;
             // Send signal to reload transactions when window opens
             this.mainWindow.webContents.send('window-opened');
         });
 
         this.mainWindow.on('close', (e) => {
-            if (this.config.app.minimizeToTray) {
-                e.preventDefault();
-                this.mainWindow.hide();
-            }
+            console.log('Main window close event triggered');
+            // Always minimize to tray instead of closing the app
+            e.preventDefault();
+            this.mainWindow.hide();
+            this.mainWindowHidden = true;
+            console.log('Main window hidden');
         });
 
+        // Don't set mainWindow to null when closed since we're preventing close
         this.mainWindow.on('closed', () => {
+            console.log('Main window closed event - this should not happen if we prevent close');
             this.mainWindow = null;
         });
     }
 
     calculatePopupPosition(index) {
         const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
-        const { WIDTH: popupWidth, HEIGHT: popupHeight, MARGIN: margin, SPACING: spacing } = CONSTANTS.POPUP;
+        const { WIDTH: popupWidth, HEIGHT: popupHeight, HEIGHT_COMPACT, MARGIN: margin, SPACING: spacing, SPACING_COMPACT } = CONSTANTS.POPUP;
+
+        // Sử dụng height và spacing khác nhau dựa trên config
+        const actualHeight = this.config.popup.hideTransactionDetails ? HEIGHT_COMPACT : popupHeight;
+        const actualSpacing = this.config.popup.hideTransactionDetails ? SPACING_COMPACT : spacing;
 
         const positions = {
             'top-right': {
                 x: screenWidth - popupWidth - margin,
-                y: margin + (index * spacing)
+                y: margin + (index * actualSpacing)
             },
             'top-left': {
                 x: margin,
-                y: margin + (index * spacing)
+                y: margin + (index * actualSpacing)
             },
             'bottom-right': {
                 x: screenWidth - popupWidth - margin,
-                y: screenHeight - popupHeight - margin - (index * spacing)
+                y: screenHeight - actualHeight - margin - (index * actualSpacing)
             },
             'bottom-left': {
                 x: margin,
-                y: screenHeight - popupHeight - margin - (index * spacing)
+                y: screenHeight - actualHeight - margin - (index * actualSpacing)
             }
         };
 
@@ -370,11 +420,14 @@ class SMSNotificationApp {
 
         // Create new popup at position 0 (top)
         const { x, y } = this.calculatePopupPosition(0);
-        const { WIDTH, HEIGHT } = CONSTANTS.POPUP;
+        const { WIDTH, HEIGHT, HEIGHT_COMPACT } = CONSTANTS.POPUP;
+
+        // Sử dụng height khác nhau dựa trên config
+        const actualHeight = this.config.popup.hideTransactionDetails ? HEIGHT_COMPACT : HEIGHT;
 
         const popupWindow = new BrowserWindow({
             width: WIDTH,
-            height: HEIGHT,
+            height: actualHeight,
             frame: false,
             alwaysOnTop: true,
             resizable: false,
@@ -393,7 +446,7 @@ class SMSNotificationApp {
 
         // Prevent popup from stealing focus
         popupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-        
+
         popupWindow.loadFile('popup.html');
 
         popupWindow.once('ready-to-show', () => {
@@ -401,13 +454,14 @@ class SMSNotificationApp {
             const popupData = {
                 ...smsData,
                 isNewest: true,
-                popupIndex: 0
+                popupIndex: 0,
+                hideTransactionDetails: this.config.popup.hideTransactionDetails
             };
-            
+
             popupWindow.webContents.send('sms-data', popupData);
             popupWindow.show();
             popupWindow.setAlwaysOnTop(true, 'screen-saver');
-            
+
             // Auto close after configured time
             if (this.config.popup.autoCloseDelay > 0) {
                 setTimeout(() => {
@@ -429,10 +483,10 @@ class SMSNotificationApp {
 
         // Add new popup to the beginning of array (newest first)
         this.popupWindows.unshift(popupWindow);
-        
+
         // Reposition all existing popups and remove "NEW" label from old ones
         this.repositionAllPopups();
-        
+
         return popupWindow;
     }
 
@@ -458,17 +512,20 @@ class SMSNotificationApp {
     }
 
     repositionAllPopups() {
-        const { WIDTH, HEIGHT } = CONSTANTS.POPUP;
+        const { WIDTH, HEIGHT, HEIGHT_COMPACT } = CONSTANTS.POPUP;
+        const actualHeight = this.config.popup.hideTransactionDetails ? HEIGHT_COMPACT : HEIGHT;
+
         this.popupWindows.forEach((popup, index) => {
             if (!popup.isDestroyed()) {
                 const { x, y } = this.calculatePopupPosition(index);
-                popup.setBounds({ x, y, width: WIDTH, height: HEIGHT });
-                
+                popup.setBounds({ x, y, width: WIDTH, height: actualHeight });
+
                 // Update popup data to reflect new position and "NEW" status
                 const isNewest = index === 0;
                 popup.webContents.send('update-popup-status', {
                     isNewest: isNewest,
-                    popupIndex: index
+                    popupIndex: index,
+                    hideTransactionDetails: this.config.popup.hideTransactionDetails
                 });
             }
         });
@@ -482,25 +539,25 @@ class SMSNotificationApp {
                 try {
                     // Merge new config with existing config
                     this.config = this.mergeConfig(this.config, newConfig);
-                    
+
                     // Save to file using ConfigManager
                     const flatConfig = this.configManager.convertToFlatConfig(this.config);
                     const saved = await this.configManager.saveConfig(flatConfig);
-                    
+
                     if (saved) {
                         console.log('Config saved successfully to:', this.configManager.getConfigPath());
-                        
+
                         // Restart services if needed
                         if (this.config.pushbullet?.apiKey && !this.isConnected) {
                             await this.startServices();
                         }
-                        
+
                         // Reinitialize Supabase if settings changed
                         if (this.shouldInitializeSupabase()) {
                             await this.initializeSupabase();
                         }
                     }
-                    
+
                     return saved;
                 } catch (error) {
                     console.error('Error in save-config handler:', error);
@@ -512,7 +569,7 @@ class SMSNotificationApp {
             // Service handlers
             'start-services': () => this.startServices(),
             'stop-services': () => this.stopServices(),
-            'get-status': () => ({ 
+            'get-status': () => ({
                 connected: this.isConnected,
                 popupCount: this.popupWindows.length,
                 services: {
@@ -538,7 +595,10 @@ class SMSNotificationApp {
 
             // Utility handlers
             'get-sample-sms': () => SMSParser.getSampleSMS(),
-            'validate-sms': (event, smsText) => SMSParser.validateSMS(smsText)
+            'validate-sms': (event, smsText) => SMSParser.validateSMS(smsText),
+            'update-balance': (event, vietcombankBalance, vietinBalance) => {
+                this.updateBalanceData(vietcombankBalance, vietinBalance);
+            }
         };
 
         // Register all handlers
@@ -554,13 +614,38 @@ class SMSNotificationApp {
                 senderWindow.close();
             }
         });
+
+        // Window control handlers
+        ipcMain.on('minimize-window', () => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.minimize();
+            }
+        });
+
+        ipcMain.on('close-window', () => {
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                this.mainWindow.close();
+            }
+        });
+
+        // Hide window handler - hides window to tray instead of closing app
+        ipcMain.on('hide-window', () => {
+            console.log('Hide window requested');
+            if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                console.log('Hiding main window');
+                this.mainWindow.hide();
+                this.mainWindowHidden = true;
+            } else {
+                console.log('Main window not available for hiding');
+            }
+        });
     }
 
     closeAllPopups() {
         // Create a copy of the array to avoid issues during iteration
         const popupsToClose = [...this.popupWindows];
         this.popupWindows = [];
-        
+
         popupsToClose.forEach(popup => {
             if (!popup.isDestroyed()) {
                 try {
@@ -656,19 +741,19 @@ class SMSNotificationApp {
     }
 
     shouldInitializeSupabase() {
-        return this.config.supabase.enabled && 
-               this.config.supabase.url && 
-               this.config.supabase.key;
+        return this.config.supabase.enabled &&
+            this.config.supabase.url &&
+            this.config.supabase.key;
     }
 
     async initializeSupabase() {
         try {
             console.log('Initializing Supabase service...');
             this.supabaseService = new SupabaseService(
-                this.config.supabase.url, 
+                this.config.supabase.url,
                 this.config.supabase.key
             );
-            
+
             const result = await this.supabaseService.testConnection();
             if (result.success) {
                 console.log('✅ Supabase connected successfully');
@@ -676,7 +761,7 @@ class SMSNotificationApp {
                 console.warn('⚠️ Supabase connection failed:', result.error);
                 // Don't set service to null, keep it for retry attempts
             }
-            
+
             return result.success;
         } catch (error) {
             console.error('❌ Error initializing Supabase:', error);
@@ -686,7 +771,7 @@ class SMSNotificationApp {
 
     async initializePushbullet() {
         this.pushbulletListener = new PushbulletListener(this.config.pushbullet.apiKey);
-        
+
         // Setup event handlers
         this.pushbulletListener.onSMSReceived = (smsData) => this.handleSMSReceived(smsData);
         this.pushbulletListener.onConnected = () => this.handleConnectionChange(true);
@@ -706,7 +791,7 @@ class SMSNotificationApp {
     handleConnectionChange(connected) {
         this.isConnected = connected;
         this.updateTrayMenu();
-        
+
         // Notify main window if open
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
             this.mainWindow.webContents.send('connection-status', { connected });
@@ -733,19 +818,19 @@ class SMSNotificationApp {
         console.log('SMS received:', smsData.bank, smsData.transactionAmount);
 
         let supabaseSaved = false;
-        
+
         // Save to Supabase if enabled and configured
         if (this.supabaseService && this.config.supabase?.enabled) {
             try {
                 console.log('Attempting to save transaction to Supabase...');
                 const result = await this.supabaseService.saveTransaction(smsData);
                 supabaseSaved = result.success;
-                
+
                 if (result.success) {
                     console.log('✅ Transaction saved to Supabase successfully:', result.data?.id);
                 } else {
                     console.error('❌ Failed to save to Supabase:', result.error);
-                    
+
                     // Try to reconnect Supabase if connection failed
                     if (result.error.includes('connection') || result.error.includes('network')) {
                         console.log('Attempting to reconnect to Supabase...');
@@ -754,7 +839,7 @@ class SMSNotificationApp {
                 }
             } catch (error) {
                 console.error('❌ Supabase save error:', error);
-                
+
                 // Try to reinitialize Supabase service
                 try {
                     await this.initializeSupabase();
@@ -781,7 +866,7 @@ class SMSNotificationApp {
 
     async gracefulShutdown() {
         console.log('🔄 Starting graceful shutdown...');
-        
+
         // Set overall timeout for shutdown
         const shutdownTimeout = new Promise((_, reject) => {
             setTimeout(() => {
@@ -806,23 +891,23 @@ class SMSNotificationApp {
     async performShutdown() {
         // 1. Stop accepting new operations
         this.isShuttingDown = true;
-        
+
         // 2. Stop services first (with timeout)
         console.log('🛑 Stopping services...');
         await this.stopServicesGracefully();
-        
+
         // 3. Close all popups
         console.log('🗑️ Closing popups...');
         await this.closeAllPopupsGracefully();
-        
+
         // 4. Close main window
         console.log('🪟 Closing main window...');
         await this.closeMainWindowGracefully();
-        
+
         // 5. Remove IPC handlers
         console.log('📡 Removing IPC handlers...');
         this.removeIPCHandlers();
-        
+
         // 6. Destroy tray (last)
         console.log('🗂️ Destroying tray...');
         await this.destroyTrayGracefully();
@@ -830,7 +915,7 @@ class SMSNotificationApp {
 
     forceCleanup() {
         console.log('🚨 Force cleanup initiated...');
-        
+
         try {
             // Force close all windows
             this.popupWindows.forEach(popup => {
@@ -864,7 +949,7 @@ class SMSNotificationApp {
 
     async stopServicesGracefully() {
         const promises = [];
-        
+
         if (this.pushbulletListener) {
             promises.push(new Promise((resolve) => {
                 try {
@@ -903,7 +988,7 @@ class SMSNotificationApp {
     async closeAllPopupsGracefully() {
         const popupsToClose = [...this.popupWindows];
         this.popupWindows = [];
-        
+
         const closePromises = popupsToClose.map(popup => {
             return new Promise((resolve) => {
                 if (!popup.isDestroyed()) {
@@ -932,7 +1017,7 @@ class SMSNotificationApp {
                     this.mainWindow = null;
                     resolve();
                 });
-                
+
                 try {
                     this.mainWindow.close();
                 } catch (error) {
@@ -940,7 +1025,7 @@ class SMSNotificationApp {
                     this.mainWindow = null;
                     resolve();
                 }
-                
+
                 // Timeout fallback
                 setTimeout(() => {
                     this.mainWindow = null;
@@ -954,7 +1039,7 @@ class SMSNotificationApp {
         try {
             // Remove all IPC handlers
             ipcMain.removeAllListeners('close-popup');
-            
+
             // Remove handle listeners
             const channels = [
                 'get-config', 'save-config', 'get-config-path',
@@ -963,7 +1048,7 @@ class SMSNotificationApp {
                 'test-pushbullet', 'test-supabase', 'test-popup', 'test-multiple-popups',
                 'get-sample-sms', 'validate-sms'
             ];
-            
+
             channels.forEach(channel => {
                 try {
                     ipcMain.removeHandler(channel);
@@ -982,14 +1067,14 @@ class SMSNotificationApp {
                 try {
                     // Remove all event listeners first
                     this.tray.removeAllListeners();
-                    
+
                     // Set empty context menu to prevent clicks
                     this.tray.setContextMenu(null);
-                    
+
                     // Destroy tray
                     this.tray.destroy();
                     this.tray = null;
-                    
+
                     resolve();
                 } catch (error) {
                     console.warn('Error destroying tray:', error);

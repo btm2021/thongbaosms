@@ -4,13 +4,15 @@ const CONSTANTS = {
     POPUP: {
         WIDTH: 550,
         HEIGHT: 210,
+        HEIGHT_COMPACT: 130, // Height khi ẩn nội dung chuyển khoản
         MARGIN: 10,
-        SPACING: 220
+        SPACING: 220,
+        SPACING_COMPACT: 160 // Spacing khi ẩn nội dung
     },
 
     MAIN_WINDOW: {
-        WIDTH: 800,
-        HEIGHT: 700
+        WIDTH: 450,
+        HEIGHT: 800
     },
 
     // Connection settings
@@ -46,7 +48,8 @@ const CONSTANTS = {
             position: "top-right",
             soundEnabled: true,
             maxPopups: 4,
-            autoCloseDelay: 300000
+            autoCloseDelay: 300000,
+            hideTransactionDetails: false // Ẩn nội dung chuyển khoản
         },
         supabase: {
             url: "https://ajsrzteoovahabndebyp.supabase.co",

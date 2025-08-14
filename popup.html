@@ -217,6 +217,10 @@
             flex-direction: column;
         }
 
+        .transaction-content.hidden {
+            display: none;
+        }
+
         .content-label {
             font-size: 12px;
             color: #6c757d;
@@ -382,11 +386,13 @@
             const headerBalance = document.getElementById('headerBalance');
             const amountValue = document.getElementById('amountValue');
             const contentText = document.getElementById('contentText');
+            const transactionContent = document.querySelector('.transaction-content');
 
             // Reset
             body.className = '';
             amountValue.className = 'amount-value';
             container.classList.remove('newest');
+            transactionContent.classList.remove('hidden');
 
             // Apply special styling for newest popup
             if (smsData.isNewest) {
@@ -434,10 +440,15 @@
             amountValue.textContent = `${sign}${formattedAmount} VND`;
             amountValue.classList.add(smsData.transactionType === 'credit' ? 'credit' : 'debit');
 
-            // Content with better formatting - hiển thị đầy đủ nội dung
-            const description = smsData.description || 'Không có thông tin';
-            contentText.textContent = description;
-            contentText.title = description; // Show full text on hover
+            // Ẩn/hiện nội dung chuyển khoản dựa trên config
+            if (smsData.hideTransactionDetails) {
+                transactionContent.classList.add('hidden');
+            } else {
+                // Content with better formatting - hiển thị đầy đủ nội dung
+                const description = smsData.description || 'Không có thông tin';
+                contentText.textContent = description;
+                contentText.title = description; // Show full text on hover
+            }
 
             // Animation
             amountValue.classList.add('pulse');
@@ -446,12 +457,20 @@
 
         function updatePopupStatus(statusData) {
             const container = document.querySelector('.popup-container');
+            const transactionContent = document.querySelector('.transaction-content');
 
             if (statusData.isNewest) {
                 container.classList.add('newest');
                 // Không tự động loại bỏ hiệu ứng - chỉ loại bỏ khi có popup mới hoặc đóng popup
             } else {
                 container.classList.remove('newest');
+            }
+
+            // Cập nhật trạng thái ẩn/hiện nội dung
+            if (statusData.hideTransactionDetails) {
+                transactionContent.classList.add('hidden');
+            } else {
+                transactionContent.classList.remove('hidden');
             }
         }
 
