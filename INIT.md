@@ -10,6 +10,8 @@
 - Hiển thị popup thông báo đẹp mắt với thông tin giao dịch
 - Lưu trữ dữ liệu giao dịch vào Supabase (tùy chọn)
 - Quản lý cấu hình linh hoạt
+- Hiển thị tổng số dư các tài khoản ngân hàng
+- Chạy nền với system tray integration
 
 ---
 
@@ -55,11 +57,14 @@
 #### Các class và method chính:
 
 ##### `SMSNotificationApp` Class
-- **Constructor**: Khởi tạo ứng dụng, setup các service
+- **Constructor**: Khởi tạo ứng dụng, setup các service, khởi tạo balanceData
 - **initializeApp()**: Khởi tạo async, load config, setup services
 - **setupApp()**: Setup Electron app events và handlers
-- **createTray()**: Tạo system tray icon với menu
-- **showMainWindow()**: Hiển thị cửa sổ chính
+- **createTray()**: Tạo system tray icon với menu (bao gồm balance info)
+- **updateTrayMenu()**: Cập nhật tray menu với thông tin balance mới
+- **formatCurrency(amount)**: Format số tiền theo chuẩn Việt Nam
+- **updateBalanceData(vietcombankBalance, vietinBalance)**: Cập nhật balance data và tray menu
+- **showMainWindow()**: Hiển thị cửa sổ chính (hỗ trợ show từ hidden state)
 - **createPopupWindow(smsData)**: Tạo popup thông báo
 - **calculatePopupPosition(index)**: Tính toán vị trí popup (hỗ trợ height khác nhau)
 - **cleanupOldPopups()**: Dọn dẹp popup cũ khi vượt giới hạn
@@ -73,14 +78,23 @@
 #### IPC Handlers được đăng ký:
 - `get-config`: Lấy cấu hình hiện tại
 - `save-config`: Lưu cấu hình mới
+- `get-config-path`: Lấy đường dẫn file config
 - `start-services`: Khởi động services
 - `stop-services`: Dừng services
-- `get-status`: Lấy trạng thái kết nối
+- `get-status`: Lấy trạng thái kết nối và services
 - `parse-sms`: Parse SMS thủ công
 - `show-popup`: Hiển thị popup test
+- `close-all-popups`: Đóng tất cả popup
 - `test-pushbullet`: Test kết nối Pushbullet
 - `test-supabase`: Test kết nối Supabase
-- `close-all-popups`: Đóng tất cả popup
+- `test-popup`: Test popup với dữ liệu custom
+- `test-multiple-popups`: Test nhiều popup cùng lúc
+- `get-sample-sms`: Lấy SMS mẫu để test
+- `validate-sms`: Validate format SMS
+- `update-balance`: Cập nhật balance data cho tray menu
+- `hide-window`: Ẩn cửa sổ chính vào tray
+- `close-window`: Đóng cửa sổ chính
+- `minimize-window`: Thu nhỏ cửa sổ chính
 
 ### 2. **services/pushbullet-listener.js** - Pushbullet Service
 **Chức năng:** Kết nối WebSocket với Pushbullet để nhận SMS
@@ -336,24 +350,51 @@ SMS: {
 ## 🎨 Giao diện (UI)
 
 ### index.html - Main Window
-**Chức năng:** Giao diện chính để cấu hình và quản lý ứng dụng
+**Chức năng:** Giao diện chính để cấu hình và quản lý ứng dụng với Windows Classic UI
 
 #### Các section chính:
-1. **Header**: Tiêu đề và trạng thái kết nối
-2. **Configuration**: Form cấu hình API keys
-3. **Popup Settings**: Cài đặt popup (vị trí, âm thanh, số lượng)
-4. **Test Section**: Các nút test chức năng
-5. **SMS Parser**: Parse SMS thủ công
-6. **Transaction History**: Lịch sử giao dịch từ Supabase
+1. **Title Bar**: Custom title bar với nút close (không có minimize)
+2. **Menu Bar**: Dropdown menu (Tools, Test, History) và status indicator
+3. **Connection Settings**: Form cấu hình Pushbullet API và Supabase
+4. **Display Settings**: Cài đặt popup (vị trí, âm thanh, số lượng, ẩn chi tiết)
+5. **Transaction History**: 
+   - **Balance Summary Table**: Tổng số dư Vietcombank, VietinBank và tổng tiền
+   - **Transaction Table**: Lịch sử giao dịch dạng bảng (Thời gian | Tên Bank | Số tiền | SD cuối)
 
 #### JavaScript Functions:
+##### Config Management:
 - **loadConfig()**: Load cấu hình từ main process
-- **saveConfig()**: Lưu cấu hình
+- **loadConfigPath()**: Load đường dẫn file config
+- **updateConfig()**: Lưu cấu hình mới
+- **initializeSupabase()**: Khởi tạo Supabase client
+
+##### Status & Connection:
 - **updateStatus()**: Cập nhật trạng thái kết nối
-- **testPushbullet()**: Test kết nối Pushbullet
-- **testSupabase()**: Test kết nối Supabase
-- **parseSMS()**: Parse SMS thủ công
-- **loadTransactionHistory()**: Load lịch sử giao dịch
+- **testPushbulletConnection()**: Test kết nối Pushbullet
+- **testSupabaseConnection()**: Test kết nối Supabase
+
+##### Test Functions:
+- **testViettinSMS()**: Test popup VietinBank
+- **testVietcombankSMS()**: Test popup Vietcombank
+- **testMultiplePopups()**: Test nhiều popup liên tiếp
+- **testCustomPopup()**: Test popup với dữ liệu tùy chỉnh
+- **closeAllPopups()**: Đóng tất cả popup
+
+##### Transaction Management:
+- **loadTransactions()**: Load lịch sử giao dịch từ Supabase
+- **renderTransactions(transactions)**: Render transactions thành table HTML
+- **calculateBalanceSummary(transactions)**: Tính toán và hiển thị tổng số dư
+- **formatCurrency(amount)**: Format số tiền theo chuẩn VN
+- **formatDateTime(timestamp)**: Format ngày giờ
+
+##### UI Functions:
+- **showMessage(message, type)**: Hiển thị thông báo
+- **closeWindow()**: Ẩn cửa sổ vào tray (không đóng app)
+- **toggleDropdown(menuId)**: Toggle dropdown menu
+- **startServices()**: Khởi động services
+- **stopServices()**: Dừng services
+- **clearTransactionHistory()**: Xóa hiển thị lịch sử
+- **loadTransactionHistory()**: Alias cho loadTransactions
 
 ### popup.html - Popup Window
 **Chức năng:** Hiển thị thông báo giao dịch
@@ -424,6 +465,115 @@ CREATE TABLE banking_transactions (
 - **Output**: dist/ directory
 - **Compression**: Maximum
 - **Extra Resources**: assets/ folder
+
+---
+
+## 🔄 Event Flow và Workflow
+
+### 1. Application Startup Flow
+```
+App Start
+    ↓
+Load Config (C:\tinhansms\config.txt)
+    ↓
+Initialize Services (Pushbullet, Supabase)
+    ↓
+Create System Tray
+    ↓
+Setup IPC Handlers
+    ↓
+Ready State
+```
+
+### 2. SMS Processing Flow
+```
+SMS Received (Pushbullet WebSocket)
+    ↓
+Filter SMS App (Messages, Messaging, etc.)
+    ↓
+Parse SMS Content (sms-parser.js)
+    ↓
+Validate Bank Format (VietinBank/Vietcombank)
+    ↓
+Extract Transaction Data
+    ↓
+Create Popup Notification
+    ↓
+Save to Supabase (if enabled)
+    ↓
+Update Balance Summary
+    ↓
+Update Tray Menu
+```
+
+### 3. Balance Update Flow
+```
+Transaction Processed
+    ↓
+calculateBalanceSummary() called
+    ↓
+Sort transactions by time (latest first)
+    ↓
+Get latest balance for each bank
+    ↓
+Calculate total balance
+    ↓
+Update UI elements
+    ↓
+Send IPC 'update-balance' to main process
+    ↓
+updateBalanceData() in main process
+    ↓
+updateTrayMenu() with new balance
+```
+
+### 4. Window Management Flow
+```
+User clicks Close (×)
+    ↓
+IPC 'hide-window' sent
+    ↓
+mainWindow.hide() called
+    ↓
+mainWindowHidden = true
+    ↓
+Window hidden to tray
+
+User double-clicks tray OR clicks "Open"
+    ↓
+showMainWindow() called
+    ↓
+Check if window exists and not destroyed
+    ↓
+mainWindow.show() + focus()
+    ↓
+mainWindowHidden = false
+    ↓
+Send 'window-opened' event
+    ↓
+Reload transaction data
+```
+
+### 5. Configuration Flow
+```
+User modifies config in UI
+    ↓
+updateConfig() called
+    ↓
+Validate form data
+    ↓
+IPC 'save-config' to main process
+    ↓
+Merge with existing config
+    ↓
+Save to C:\tinhansms\config.txt
+    ↓
+Restart services if needed
+    ↓
+Reinitialize Supabase if changed
+    ↓
+Update UI with success message
+```
 
 ---
 
@@ -518,6 +668,80 @@ CREATE TABLE banking_transactions (
 
 ---
 
+## 🎨 UI/UX Design
+
+### Windows Classic Theme
+Ứng dụng sử dụng Windows Classic design language để tạo cảm giác quen thuộc và professional.
+
+#### Design Elements:
+- **Colors**: `#c0c0c0` (background), `#808080` (borders), `#000080` (text)
+- **Borders**: Inset/outset effects cho depth
+- **Typography**: MS Sans Serif, Tahoma fonts
+- **Controls**: Classic button styles với hover effects
+
+#### Layout Structure:
+```
+┌─ Title Bar ────────────────────────────────────────────────────────────┐
+│ SMS Notification - Configuration Panel                            [×] │
+├─ Menu Bar ─────────────────────────────────────────────────────────────┤
+│ Tools ▼  Test ▼  History ▼                           🟢 Connected     │
+├─ Content Area ─────────────────────────────────────────────────────────┤
+│ ┌─ Connection Settings ─────────────────────────────────────────────┐ │
+│ │ Config Path: C:\tinhansms\config.txt                             │ │
+│ │ Pushbullet API Key: [******************]                         │ │
+│ │ Supabase URL: [https://xxx.supabase.co]                         │ │
+│ │ Supabase Key: [******************]                               │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+│ ┌─ Display Settings ────────────────────────────────────────────────┐ │
+│ │ ┌─ Popup Configuration ─┐  ┌─ Options ──────────────────────────┐ │ │
+│ │ │ Position: Top Right ▼ │  │ ☑ Enable Sound                    │ │ │
+│ │ │ Max Popups: [4]       │  │ ☑ Save to Supabase                │ │ │
+│ │ │ Auto Close: [8] sec   │  │ ☐ Hide Details                     │ │ │
+│ │ └───────────────────────┘  └────────────────────────────────────┘ │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+│ ┌─ Transaction History ─────────────────────────────────────────────┐ │
+│ │ Vietcombank:    1,000,000 VND                                    │ │
+│ │ VietinBank:     2,000,000 VND                                    │ │
+│ │ Tổng tiền:      3,000,000 VND                                    │ │
+│ │ ─────────────────────────────────────────────────────────────────│ │
+│ │ ┌─────────────────────────────────────────────────────────────┐ │ │
+│ │ │ Thời gian    │ Tên Bank │ Số tiền      │ SD cuối        │ │ │ │
+│ │ │ 14/08 10:30  │ VCB      │ +1,000,000   │ 5,000,000      │ │ │ │
+│ │ │ 14/08 09:15  │ VTB      │ -500,000     │ 4,500,000      │ │ │ │
+│ │ └─────────────────────────────────────────────────────────────┘ │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Popup Design
+Popup notifications sử dụng modern card design với animation mượt mà.
+
+#### Popup Structure:
+```
+┌─ Popup Window ─────────────────────────────────────────────────────────┐
+│ ┌─ Header ─────────────────────────────────────────────────────────┐ │
+│ │ [BANK LOGO] VietinBank                                    [NEW] │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+│ ┌─ Amount ─────────────────────────────────────────────────────────┐ │
+│ │                        +1,500,000 VND                           │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+│ ┌─ Details ────────────────────────────────────────────────────────┐ │
+│ │ Balance: 65,408,063 VND                                         │ │
+│ │ Description: Nhan tien tu NGUYEN VAN A                          │ │
+│ │ Time: 14/08/2025 10:30                                          │ │
+│ └───────────────────────────────────────────────────────────────────┘ │
+│                                                              [×]    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Responsive Behavior
+- **Popup Positioning**: Tự động tính toán vị trí dựa trên screen size
+- **Height Adaptation**: Popup height thay đổi khi ẩn chi tiết (210px → 150px)
+- **Spacing Optimization**: Khoảng cách popup điều chỉnh theo height (220px → 160px)
+- **Balance Summary**: Tự động ẩn/hiện dựa trên dữ liệu có sẵn
+
+---
+
 ## 🔒 Bảo mật
 
 ### API Keys:
@@ -538,25 +762,81 @@ CREATE TABLE banking_transactions (
 
 ---
 
-## 🆕 Tính năng mới: Ẩn nội dung chuyển khoản
+## 🆕 Tính năng mới được cập nhật
 
-### Mô tả:
-Tính năng cho phép ẩn nội dung chi tiết của giao dịch, chỉ hiển thị số tiền và thông tin cơ bản. Hữu ích khi muốn bảo mật thông tin hoặc giảm kích thước popup.
+### 1. **System Tray Integration nâng cao**
+#### Mô tả:
+System tray menu hiển thị thông tin balance real-time và loại bỏ các chức năng không cần thiết.
 
-### Cách hoạt động:
+#### Cấu trúc menu mới:
+```
+┌─ SMS Notification ─────────────┐
+├─ 🟢 Connected                  │
+├─ ─────────────────────────────  │
+├─ Open                          │
+├─ ─────────────────────────────  │
+├─ Vietcombank: 1,000,000 VND    │
+├─ VietinBank: 2,000,000 VND     │
+├─ Tổng tiền: 3,000,000 VND      │
+├─ ─────────────────────────────  │
+└─ Quit                          │
+```
+
+#### Thay đổi:
+- ❌ **Bỏ**: Dòng "Stop Services" 
+- ✅ **Thêm**: 3 dòng hiển thị balance (Vietcombank, VietinBank, Tổng tiền)
+- ✅ **Auto-update**: Balance tự động cập nhật khi có transaction mới
+- ✅ **Format**: Số tiền được format theo chuẩn Việt Nam
+
+### 2. **Window Management cải tiến**
+#### Mô tả:
+Cải thiện cách xử lý đóng/mở cửa sổ để tương thích với system tray.
+
+#### Thay đổi:
+- ❌ **Bỏ**: Nút minimize (_) khỏi title bar
+- ✅ **Sửa**: Nút close (×) giờ ẩn cửa sổ thay vì đóng app
+- ✅ **Cải thiện**: Logic show/hide window từ tray
+- ✅ **Tracking**: Manual tracking window state với `mainWindowHidden`
+
+### 3. **Transaction History UI overhaul**
+#### Mô tả:
+Thay đổi hoàn toàn giao diện transaction history từ card-based sang table-based.
+
+#### Cấu trúc mới:
+```
+┌─ Transaction History ─────────────┐
+│ ┌─ Balance Summary ─────────────┐ │
+│ │ Vietcombank:    1,000,000 VND │ │
+│ │ VietinBank:     2,000,000 VND │ │
+│ │ ────────────────────────────── │ │
+│ │ Tổng tiền:      3,000,000 VND │ │
+│ └───────────────────────────────┘ │
+│                                   │
+│ ┌─ Transaction Table ───────────┐ │
+│ │ Thời gian | Bank | Tiền | SD │ │
+│ │ 14/08 10:30 | VCB | +1M | 5M │ │
+│ │ 14/08 09:15 | VTB | -500K| 4M │ │
+│ └───────────────────────────────┘ │
+└───────────────────────────────────┘
+```
+
+#### Thay đổi:
+- ✅ **Balance Summary**: Bảng tổng số dư 3 dòng (không header)
+- ✅ **Transaction Table**: Bảng 4 cột với header
+- ✅ **Windows Classic Style**: Border inset/outset, màu sắc classic
+- ✅ **Responsive**: Tự động ẩn/hiện balance summary
+
+### 4. **Ẩn nội dung chuyển khoản**
+#### Mô tả:
+Tính năng cho phép ẩn nội dung chi tiết của giao dịch, chỉ hiển thị số tiền và thông tin cơ bản.
+
+#### Cách hoạt động:
 1. **Config**: Thêm `hideTransactionDetails: boolean` vào popup config
 2. **UI**: Checkbox trong giao diện cấu hình
 3. **Popup**: Tự động điều chỉnh height từ 210px xuống 150px
 4. **Spacing**: Giảm khoảng cách giữa các popup từ 220px xuống 160px
 
-### Thay đổi kỹ thuật:
-- **constants.js**: Thêm `HEIGHT_COMPACT` và `SPACING_COMPACT`
-- **config-manager.js**: Hỗ trợ `hideTransactionDetails` trong config
-- **app.js**: Logic tính toán height và spacing động
-- **popup.html**: CSS class `.hidden` để ẩn nội dung
-- **index.html**: Checkbox cấu hình mới
-
-### Code changes:
+#### Code changes:
 ```javascript
 // Tính toán height động
 const actualHeight = this.config.popup.hideTransactionDetails ? HEIGHT_COMPACT : HEIGHT;
@@ -617,15 +897,32 @@ if (smsData.hideTransactionDetails) {
 - ✅ Kiến trúc rõ ràng, dễ hiểu
 - ✅ Error handling và recovery tốt
 - ✅ Cấu hình linh hoạt
-- ✅ UI/UX thân thiện
+- ✅ UI/UX thân thiện với Windows Classic style
 - ✅ Performance tối ưu
 - ✅ Bảo mật tốt
 - ✅ Logging và monitoring đầy đủ
+- ✅ System tray integration hoàn chỉnh
+- ✅ Real-time balance tracking
+- ✅ Table-based transaction history
+- ✅ Graceful window management
+
+### Tính năng nổi bật:
+- 💰 **Balance Summary**: Hiển thị tổng số dư real-time
+- 🖥️ **System Tray**: Menu tray với thông tin balance
+- 📊 **Table View**: Transaction history dạng bảng dễ đọc
+- 🎨 **Windows Classic**: UI theo phong cách Windows 98/XP
+- 🔒 **Privacy**: Tùy chọn ẩn chi tiết giao dịch
+- ⚡ **Performance**: Popup positioning tối ưu
+- 🔄 **Auto-sync**: Tự động cập nhật balance khi có transaction mới
 
 ### Khả năng phát triển:
-- 🔄 Thêm nhiều ngân hàng hơn
+- 🔄 Thêm nhiều ngân hàng hơn (ACB, Techcombank, BIDV...)
 - 🔄 Machine learning cho SMS parsing
 - 🔄 Mobile app companion
-- 🔄 Advanced analytics
+- 🔄 Advanced analytics và charts
 - 🔄 Multi-language support
-- 🔄 Cloud sync
+- 🔄 Cloud sync và backup
+- 🔄 Notification rules và filters
+- 🔄 Export data (Excel, PDF)
+- 🔄 Dark mode theme
+- 🔄 Voice notifications
